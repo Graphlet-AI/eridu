@@ -1,0 +1,74 @@
+[tool.poetry]
+name = "eridu"
+version = "0.1.0"
+description = "Fuzzy matching through representation learning for names, company names and addresses."
+authors = ["Russell Jurney <rjurney@graphlet.ai>"]
+license = "Apache 2.0"
+readme = "README.md"
+package-mode = false
+
+[[tool.poetry.source]]
+name = "pytorch-nightly"
+url = "https://download.pytorch.org/whl/nightly/cpu"
+priority = "explicit"
+
+[project]
+name = "eridu"
+version = "0.1.0"
+
+[tool.poetry.urls]
+"Blog Post" = "Unwritten"
+"Code Repository" = "https://github.com/Graphlet-AI/eridu"
+"Bug Tracker" = "https://github.com/Graphlet-AI/eridu/issues"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+ipython = "^9.0.2"
+numpy = "^2.2"
+sentence-transformers = { version = "^3.4.1", extras = ["torch"] }
+pandas = "^2.2.3"
+tqdm = "^4.67.1"
+pyarrow = "^19.0.1"
+transformers = "^4.50.1"
+wandb = "^0.19.8"
+jupyter = "^1.1.1"
+notebook = "^7.3.3"
+seaborn = "^0.13.2"
+
+[tool.poetry.group.dev.dependencies]
+black = { version = "^25.1.0", extras = ["jupyter"] }
+isort = "^6.0.1"
+flake8 = "^7.1.2"
+mypy = "^1.15.0"
+pytest = "^8.3.5"
+pre-commit = "^4.2.0"
+pandas-stubs = "^2.2.3.250308"
+types-tqdm = "^4.67.0.20250319"
+nbdime = "^4.0.2"
+jupyter-black = "^0.4.0"
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+include = '\.py$'
+src = "."
+
+[tool.isort]
+profile = "black"
+src_paths = ["."]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = ["."]
+warn_return_any = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+python_files = "distance.py"  # Include all Python files in the test discovery.
+testpaths = ["tests"]  # Look for tests in the root directory.
