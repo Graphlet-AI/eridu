@@ -1,6 +1,4 @@
-# Eridu
-
-Sentence-transformers for fuzzy matching names and company names
+# Eridu: fuzzy matching names and company names
 
 ## Introduction
 
