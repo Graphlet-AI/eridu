@@ -1,5 +1,5 @@
-# Eridu: fuzzy matching names and company names
+# Eridu
 
-This project performs fuzzy matching for entity resolution using representation learning. It fine-tunes sentence transformers to understand common differences between names, company name and addresses.
+> Fuzzy matching common fields for entity resolution using representation learning
 
-
+This project fine-tunes common sentence transformers to understand common differences between names, company name and addresses. This has the potential to outperform parsing based methods.
