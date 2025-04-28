@@ -1,6 +1,6 @@
 # Eridu
 
-Fuzzy matching for entity resolution with sentence transformers
+Sentence-transformers for fuzzy matching names and company names
 
 ## Introduction
 
