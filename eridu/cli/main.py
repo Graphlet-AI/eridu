@@ -15,6 +15,12 @@ def cli() -> None:
     pass
 
 
+@cli.group()
+def etl() -> None:
+    """ETL commands for data processing."""
+    pass
+
+
 @cli.command()
 @click.option(
     "--url",
