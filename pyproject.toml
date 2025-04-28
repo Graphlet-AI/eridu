@@ -1,15 +1,18 @@
 [tool.poetry]
 name = "eridu"
 version = "0.1.0"
-description = "Fuzzy matching through representation learning for names, company names and addresses."
+description = "Fuzzy matching for entity resolution through representation learning"
 authors = ["Russell Jurney <rjurney@graphlet.ai>"]
 license = "Apache 2.0"
 readme = "README.md"
-package-mode = false
+package-mode = true
+
+[tool.poetry.scripts]
+eridu = "eridu.cli.main:cli"
 
 [[tool.poetry.source]]
 name = "pytorch-nightly"
-url = "https://download.pytorch.org/whl/nightly/cpu"
+url = "https://download.pytorch.org/whl/nightly/gpu"
 priority = "explicit"
 
 [project]
@@ -34,6 +37,7 @@ wandb = "^0.19.8"
 jupyter = "^1.1.1"
 notebook = "^7.3.3"
 seaborn = "^0.13.2"
+click = "^8.1.7"
 
 [tool.poetry.group.dev.dependencies]
 black = { version = "^25.1.0", extras = ["jupyter"] }
