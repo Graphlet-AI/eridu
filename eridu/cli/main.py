@@ -11,7 +11,7 @@ from tqdm import tqdm
 @click.group()
 @click.version_option()
 def cli() -> None:
-    """Eridu: Fuzzy matching for entity resolution through representation learning."""
+    """Eridu: Fuzzy matching people and company names for entity resolution using representation learning"""
     pass
 
 
@@ -46,7 +46,7 @@ def etl_report(parquet_path: str, truncate: int) -> None:
     "--url",
     default="https://storage.googleapis.com/data.opensanctions.org/contrib/sample/pairs-all.csv.gz",
     show_default=True,
-    help="URL to download the gzipped CSV file from",
+    help="URL to download the pairs gzipped CSV file from",
 )
 @click.option(
     "--output-dir",
@@ -55,7 +55,7 @@ def etl_report(parquet_path: str, truncate: int) -> None:
     help="Directory to save the downloaded and extracted files",
 )
 def download(url: str, output_dir: str) -> None:
-    """Download and convert a gzipped CSV file to Parquet format."""
+    """Download and convert the labeled entity pairsa CSV file to Parquet format."""
     output_dir_path = Path(output_dir)
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
