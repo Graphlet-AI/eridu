@@ -38,6 +38,7 @@ jupyter = "^1.1.1"
 notebook = "^7.3.3"
 seaborn = "^0.13.2"
 click = "^8.1.7"
+requests = "^2.32.3"
 
 [tool.poetry.group.dev.dependencies]
 black = { version = "^25.1.0", extras = ["jupyter"] }
