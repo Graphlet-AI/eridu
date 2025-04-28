@@ -6,7 +6,7 @@ This project fine-tunes common sentence transformers to understand common differ
 
 ## TLDR
 
-First read <a href="#project-setup">Project Setup</a>, then run the CLI: <a href="#eridu-cli">`eridu --help`</a>
+First go through <a href="#project-setup">Project Setup</a>, then run the CLI: <a href="#eridu-cli">`eridu --help`</a>
 
 ## `eridu` CLI
 
@@ -16,7 +16,7 @@ This project has a `eridu` CLI to run everything. It self describes.
 eridu --help
 ```
 
-NOTE! This README may get out of date, so do run `eridu --help`
+NOTE! This README may get out of date, so please run `eridu --help`
 
 ```bash
 Usage: eridu [OPTIONS] COMMAND [ARGS]...
