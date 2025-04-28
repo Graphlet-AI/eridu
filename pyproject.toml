@@ -70,5 +70,4 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 
 [tool.pytest.ini_options]
-python_files = "distance.py"  # Include all Python files in the test discovery.
 testpaths = ["tests"]  # Look for tests in the root directory.
