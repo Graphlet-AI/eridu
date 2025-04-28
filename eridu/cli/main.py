@@ -21,6 +21,26 @@ def etl() -> None:
     pass
 
 
+@etl.command(name="report")
+@click.option(
+    "--parquet-path",
+    default="./data/pairs-all.parquet",
+    show_default=True,
+    help="Path to the Parquet file to analyze (default is the output from 'eridu download')",
+)
+@click.option(
+    "--truncate",
+    default=20,
+    show_default=True,
+    help="Truncation limit for string display",
+)
+def etl_report(parquet_path: str, truncate: int) -> None:
+    """Generate a report on entity pairs data."""
+    from eridu.etl.report import generate_pairs_report
+
+    generate_pairs_report(parquet_path, truncate)
+
+
 @cli.command()
 @click.option(
     "--url",
@@ -75,6 +95,8 @@ def download(url: str, output_dir: str) -> None:
         raise
 
     click.echo("Download and conversion to Parquet completed successfully.")
+    click.echo("\nTo generate a report on this data, run:")
+    click.echo(f"  eridu etl report --parquet-path {parquet_path}")
 
 
 if __name__ == "__main__":
