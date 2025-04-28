@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "eridu"
 version = "0.1.0"
-description = "Fuzzy matching for entity resolution through representation learning"
+description = "Fuzzy matching common fields for entity resolution through representation learning"
 authors = ["Russell Jurney <rjurney@graphlet.ai>"]
 license = "Apache 2.0"
 readme = "README.md"
