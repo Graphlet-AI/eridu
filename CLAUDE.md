@@ -17,3 +17,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Imports: Use absolute imports, organize imports to be PEP compliant with isort (profile=black)
 - Error handling: Use mdecific exception types with logging
 - Naming: snake_case for variables/functions, CamelCase for classes
+
+## Claude Code Style
+
+- Specificity - try not to get off track. Keep your changes central to the request.
+- Line Count - try to keep the code simple and succinct, while still accomplishing the goal of our instructions.
+- PySpark - Limit the number of functions within scripts that control dataflow. We prefer a more linear flow.
