@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eridu"
-version = "0.1.0"
+version = "0.1.1"
 description = "Fuzzy matching people and company names for entity resolution using representation learning"
 authors = ["Russell Jurney <rjurney@graphlet.ai>"]
 license = "Apache 2.0"
