@@ -40,6 +40,7 @@ seaborn = "^0.13.2"
 click = "^8.1.7"
 requests = "^2.32.3"
 pyspark = "^3.5.5"
+datasets = "^3.5.1"
 
 [tool.poetry.group.dev.dependencies]
 black = { version = "^25.1.0", extras = ["jupyter"] }
