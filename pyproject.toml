@@ -53,6 +53,8 @@ pandas-stubs = "^2.2.3.250308"
 types-tqdm = "^4.67.0.20250319"
 nbdime = "^4.0.2"
 jupyter-black = "^0.4.0"
+pyarrow-stubs = "^19.1"
+types-seaborn = "^0.13.2.20250111"
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]

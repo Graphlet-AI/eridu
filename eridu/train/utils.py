@@ -2,10 +2,13 @@ import logging
 import os
 import sys
 from numbers import Number
-from typing import Any, Callable, Dict, List, Tuple, Type, TypeVar, Union
+from typing import Any, Dict, List, Literal, Tuple, Type, TypeVar, Union
 
+import numpy as np
 import pandas as pd
 import torch
+from scipy.spatial import distance
+from sentence_transformers import SentenceTransformer
 from sklearn.metrics import (  # type: ignore
     accuracy_score,
     f1_score,
@@ -138,42 +141,103 @@ def load_transformer(
     return model
 
 
-def gold_label_report(
-    s: pd.Series, eval_methods: List[Callable], threshold: float = 0.5
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """gold_label_evaluate Evaluate a model on our original gold labels and return a report.
-    Returns a Tuple of two pd.DataFrames, one with raw results and one with aggregated results."""
-    s = s.copy(deep=True)
+def sbert_compare_multiple(
+    sbert_model: SentenceTransformer, names1: List[str] | pd.Series, names2: List[str] | pd.Series
+) -> np.ndarray:
+    """sbert_compare_multiple - Efficiently compute cosine similarity between two lists of names using numpy arrays.
 
-    raw_df: pd.DataFrame = pd.DataFrame()
-    raw_df["Description"] = s["Description"]
-    raw_df["Address1"] = s["Address1"]
-    raw_df["Address2"] = s["Address2"]
-    raw_df["Label"] = s["Label"]
+    Args:
+        sbert_model (SentenceTransformer): The SentenceTransformer model to use for encoding
+        names1 (List[str]): First list of names to compare
+        names2 (List[str]): Second list of names to compare
 
-    agg_funcs = {}
-    kwargs = {"threshold": threshold}
+    Returns:
+        np.ndarray: Array of cosine similarities between corresponding pairs of names
+    """
+    # Handle pandas Series and convert to lists
+    if isinstance(names1, pd.Series):
+        names1 = names1.astype(str).tolist()
+    if isinstance(names2, pd.Series):
+        names2 = names2.astype(str).tolist()
 
-    for eval_method in eval_methods:
-        # Apply the matching model to the address pair
-        func_col_name: str = eval_method.__name__
+    # Encode both lists of names into embeddings
+    embeddings1 = sbert_model.encode(names1, convert_to_numpy=True)
+    embeddings2 = sbert_model.encode(names2, convert_to_numpy=True)
 
-        if "sbert" in func_col_name:
+    # Normalize the embeddings for efficient cosine similarity computation
+    embeddings1 = embeddings1 / np.linalg.norm(embeddings1, axis=1, keepdims=True)
+    embeddings2 = embeddings2 / np.linalg.norm(embeddings2, axis=1, keepdims=True)
 
-            def apply_eval_method(row: pd.Series, threshold=threshold) -> Any:
-                return eval_method(row, threshold=threshold)
+    # Compute cosine similarity using dot product of normalized vectors
+    similarities: np.ndarray[Any, Any] = np.sum(embeddings1 * embeddings2, axis=1)
 
-            raw_df[func_col_name] = s.apply(apply_eval_method, axis=1, **kwargs)  # type: ignore
-        else:
-            raw_df[func_col_name] = s.apply(eval_method, axis=1)
+    return similarities
 
-        raw_df[f"{func_col_name}_correct"] = raw_df[func_col_name] == raw_df["Label"]
 
-        agg_funcs[f"{eval_method.__name__}_acc"] = (
-            f"{eval_method.__name__}",
-            lambda x: x.mean(),
-        )
+def sbert_compare_multiple_df(
+    sbert_model: SentenceTransformer,
+    names1: List[str] | pd.Series,
+    names2: List[str] | pd.Series,
+    matches: List[bool] | pd.Series,
+) -> pd.DataFrame:
+    """sbert_compare_multiple_df - Efficiently compute cosine similarity between two lists of names using numpy arrays."""
+    similarities = sbert_compare_multiple(sbert_model, names1, names2)
+    return pd.DataFrame(
+        {"name1": names1, "name2": names2, "similarity": similarities, "match": matches}
+    )
 
-    grouped_df: pd.DataFrame = raw_df.groupby("Description").agg(**agg_funcs)  # type: ignore
 
-    return raw_df, grouped_df
+def sbert_match_multiple(
+    df: pd.DataFrame,
+    sbert_model: SentenceTransformer,
+    name1_col: str = "name1",
+    name2_col: str = "name2",
+) -> pd.Series:
+    """sbert_match_multiple - Efficiently compute cosine similarities for all rows in a DataFrame
+
+    Args:
+        df (pd.DataFrame): DataFrame containing name pairs to compare
+        sbert_model (SentenceTransformer): The SentenceTransformer model to use
+        name1_col (str): Column name for first name
+        name2_col (str): Column name for second name
+
+    Returns:
+        pd.Series: Series of cosine similarities between name pairs
+    """
+    similarities = sbert_compare_multiple(
+        sbert_model, df[name1_col].tolist(), df[name2_col].tolist()
+    )
+    return pd.Series(similarities, index=df.index)
+
+
+def sbert_compare(sbert_model: SentenceTransformer, name1: str, name2: str) -> float:
+    """sbert_compare - sentence encode each name into a fixed-length text embedding.
+    Fixed-length means they can be compared with cosine similarity."""
+    embedding1 = sbert_model.encode(name1)
+    embedding2 = sbert_model.encode(name2)
+
+    # Compute cosine similarity
+    diff: float = 1 - distance.cosine(embedding1, embedding2)
+    return diff
+
+
+def sbert_match(sbert_model: SentenceTransformer, row: pd.Series) -> pd.Series:
+    """sbert_match - SentenceTransformer name matching, float iytoyt"""
+    bin_match: Literal[0, 1] = sbert_compare_binary(sbert_model, row["name1"], row["name2"])
+    return pd.Series(bin_match, index=row.index)
+
+
+def sbert_compare_binary(
+    sbert_model: SentenceTransformer, name1: str, name2: str, threshold: float = 0.5
+) -> Literal[0, 1]:
+    """sbert_match - compare and return a binary match"""
+    similarity = sbert_compare(sbert_model, name1, name2)
+    return 1 if similarity >= threshold else 0
+
+
+def sbert_match_binary(
+    sbert_model: SentenceTransformer, row: pd.Series, threshold: float = 0.5
+) -> pd.Series:
+    """sbert_match_binary - SentenceTransformer name matching, binary output"""
+    bin_match = sbert_compare_binary(sbert_model, row["name1"], row["name2"], threshold=threshold)
+    return pd.Series(bin_match, index=row.index)
