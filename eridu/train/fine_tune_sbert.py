@@ -61,9 +61,8 @@ pd.set_option("display.max_rows", 40)
 pd.set_option("display.max_columns", None)
 
 # Configure sample size and model training parameters
-# SBERT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-SAMPLE_FRACTION = 0.05
-SBERT_MODEL = "BAAI/bge-m3"
+SAMPLE_FRACTION = 1.0
+SBERT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 VARIANT = "original"
 OPTIMIZER = "adafactor"
 MODEL_SAVE_NAME = (SBERT_MODEL + "-" + VARIANT + "-" + OPTIMIZER).replace("/", "-")
@@ -94,12 +93,14 @@ dataset = pd.read_parquet("data/pairs-all.parquet")
 
 # Display the first few rows of the dataset
 print("\nRaw training data sample:\n")
-print(dataset.head())
+print(dataset.sample(n=20).head())
+
+# Optionally sample the dataset
+if SAMPLE_FRACTION < 1.0:
+    dataset = dataset.sample(frac=SAMPLE_FRACTION)
 
 # Split the dataset into training, evaluation, and test sets
-train_df, tmp_df = train_test_split(
-    dataset.sample(frac=SAMPLE_FRACTION), test_size=0.2, random_state=RANDOM_SEED, shuffle=True
-)
+train_df, tmp_df = train_test_split(dataset, test_size=0.2, random_state=RANDOM_SEED, shuffle=True)
 eval_df, test_df = train_test_split(tmp_df, test_size=0.5, random_state=RANDOM_SEED, shuffle=True)
 
 print(f"\nTraining data:   {len(train_df):,}")
@@ -140,6 +141,8 @@ sbert_model = SentenceTransformer(
         model_name=f"{SBERT_MODEL}-address-matcher-{VARIANT}",
     ),
 )
+# Enable gradient checkpointing to save memory
+sbert_model.gradient_checkpointing_enable()
 
 # Try it out - doesn't work very well without fine-tuning, although cross-lingual works somewhat
 print("\nTesting un-fine-tuned SBERT model:\n")
