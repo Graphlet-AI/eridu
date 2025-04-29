@@ -72,7 +72,7 @@ GRADIENT_ACCUMULATION_STEPS = 4
 PATIENCE = 2
 LEARNING_RATE = 5e-5
 SBERT_OUTPUT_FOLDER = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
-SAVE_EVAL_STEPS = 10000
+SAVE_EVAL_STEPS = 1000
 
 # Check for CUDA or MPS availability and set the device
 device: torch.device | str
