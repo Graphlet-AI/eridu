@@ -59,18 +59,6 @@ def compute_classifier_metrics(eval_pred):
     return {"accuracy": acc, "f1": f1, "precision": precision, "recall": recall}
 
 
-def tokenize_function(examples, tokenizer):
-    encoded_a = tokenizer(examples["sentence1"], padding="max_length", truncation=True)
-    encoded_b = tokenizer(examples["sentence2"], padding="max_length", truncation=True)
-    return {
-        "input_ids_a": encoded_a["input_ids"],
-        "attention_mask_a": encoded_a["attention_mask"],
-        "input_ids_b": encoded_b["input_ids"],
-        "attention_mask_b": encoded_b["attention_mask"],
-        "labels": examples["label"],
-    }
-
-
 def format_dataset(dataset):
     dataset.set_format(
         type="torch",

@@ -1,83 +1,41 @@
 """Fine-tunes a sentence transformer for people and company name matching using contrastive loss."""
 
-import json
 import logging
 import os
 import random
-import re
 import sys
-import time
 import warnings
-from numbers import Number
-from typing import Callable, Dict, List, Literal, Sequence, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import pyarrow as pa
-import pyarrow.dataset as ds
-import pyarrow.parquet as pq
 import seaborn as sns
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from datasets import Dataset
-from scipy.spatial import distance  # type: ignore
-from scipy.stats import iqr  # type: ignore
+from datasets import Dataset  # type: ignore
+from scipy.stats import iqr
 from sentence_transformers import (
-    InputExample,
-    SentencesDataset,
     SentenceTransformer,
     SentenceTransformerTrainer,
     losses,
 )
-from sentence_transformers.evaluation import (
-    BinaryClassificationEvaluator,
-    EmbeddingSimilarityEvaluator,
-    SimilarityFunction,
-)
+from sentence_transformers.evaluation import BinaryClassificationEvaluator
 from sentence_transformers.model_card import SentenceTransformerModelCardData
-from sentence_transformers.training_args import (
-    BatchSamplers,
-    SentenceTransformerTrainingArguments,
-)
+from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sklearn.metrics import (  # type: ignore
-    accuracy_score,
-    auc,
     f1_score,
     precision_recall_curve,
-    precision_recall_fscore_support,
-    precision_score,
-    recall_score,
     roc_auc_score,
-    roc_curve,
 )
 from sklearn.model_selection import train_test_split  # type: ignore
-from torch.optim import RAdam
-from torch.utils.data import DataLoader
-from tqdm.autonotebook import tqdm
-from transformers import (
-    AutoModel,
-    AutoTokenizer,
-    EarlyStoppingCallback,
-    Trainer,
-    TrainingArguments,
-)
+from transformers import EarlyStoppingCallback
 
+import wandb
+from eridu.train.utils import compute_classifier_metrics  # noqa: F401
 from eridu.train.utils import (
-    compute_classifier_metrics,
     compute_sbert_metrics,
-    format_dataset,
-    load_transformer,
-    preprocess_logits_for_metrics,
-    save_transformer,
     sbert_compare,
-    sbert_compare_binary,
     sbert_compare_multiple,
     sbert_compare_multiple_df,
-    sbert_match,
-    sbert_match_binary,
-    tokenize_function,
 )
 
 # For reproducibility
@@ -267,3 +225,60 @@ trainer = SentenceTransformerTrainer(
 
 # This will take a while - if you're using CPU you need to sample the training dataset down a lot
 trainer.train()  # type: ignore
+
+print(f"Best model checkpoint path: {trainer.state.best_model_checkpoint}")  # type: ignore
+
+print(pd.DataFrame([trainer.evaluate()]))
+
+trainer.save_model(SBERT_OUTPUT_FOLDER)  # type: ignore
+print(f"Saved model to {SBERT_OUTPUT_FOLDER}")
+
+wandb.finish()
+
+#
+# Test out the fine-tuned model on the same examples as before. Note any improvements?
+#
+print("John Smith", "John Smith", sbert_compare(sbert_model, "John Smith", "John Smith"))
+print("John Smith", "John H. Smith", sbert_compare(sbert_model, "John Smith", "John H. Smith"))
+# Decent starting russian performance
+print(
+    "Yevgeny Prigozhin",
+    "Евгений Пригожин",
+    sbert_compare(sbert_model, "Yevgeny Prigozhin", "Евгений Пригожин"),
+)
+# Poor starting chinese performance - can we improve?
+print("Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡"))
+
+
+#
+# Evaluate ROC curve and determine optimal threshold
+#
+y_true = test_df["match"].astype(float).tolist()
+y_scores = sbert_compare_multiple(sbert_model, test_df["left_name"], test_df["right_name"])
+
+# Compute precision-recall curve
+precision, recall, thresholds = precision_recall_curve(y_true, y_scores)
+
+# Compute F1 score for each threshold
+f1_scores = [f1_score(y_true, y_scores >= t) for t in thresholds]
+
+# Find the threshold that maximizes the F1 score
+best_threshold_index = np.argmax(f1_scores)
+best_threshold = thresholds[best_threshold_index]
+best_f1_score = f1_scores[best_threshold_index]
+
+print(f"Best Threshold: {best_threshold}")
+print(f"Best F1 Score: {best_f1_score}")
+
+roc_auc = roc_auc_score(y_true, y_scores)
+print(f"AUC-ROC: {roc_auc}")
+
+# Create a DataFrame for Seaborn
+pr_data = pd.DataFrame({"Precision": precision[:-1], "Recall": recall[:-1], "F1 Score": f1_scores})
+
+# Plot Precision-Recall curve using Seaborn and save to disk
+sns.lineplot(data=pr_data, x="Recall", y="Precision", marker="o")
+plt.xlabel("Recall")
+plt.ylabel("Precision")
+plt.title("Augmented Test Set Precision-Recall Curve")
+plt.savefig("images/precision_recall_curve.png")
