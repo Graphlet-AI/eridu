@@ -33,7 +33,7 @@ sentence-transformers = { version = "^3.4.1", extras = ["torch"] }
 pandas = "^2.2.3"
 tqdm = "^4.67.1"
 pyarrow = "^19.0.1"
-wandb = "^0.19.8"
+wandb = "^0.19.10"
 jupyter = "^1.1.1"
 notebook = "^7.3.3"
 seaborn = "^0.13.2"
