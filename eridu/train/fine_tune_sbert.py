@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import torch
+import torch.quantization as tq
 from datasets import Dataset  # type: ignore
 from scipy.stats import iqr
 from sentence_transformers import (
@@ -38,6 +39,10 @@ from eridu.train.utils import (
     sbert_compare_multiple,
     sbert_compare_multiple_df,
 )
+
+#
+# Training run and pandas configuration, environment variables, and runtime parameters
+#
 
 # For reproducibility
 RANDOM_SEED: int = 31337
@@ -69,14 +74,17 @@ VARIANT: str = "original"
 OPTIMIZER: str = "adafactor"
 MODEL_SAVE_NAME: str = (SBERT_MODEL + "-" + VARIANT + "-" + OPTIMIZER).replace("/", "-")
 EPOCHS: int = 6
-BATCH_SIZE: int = 512
+BATCH_SIZE: int = 1024
 GRADIENT_ACCUMULATION_STEPS: int = 4
 PATIENCE: int = 2
 LEARNING_RATE: float = 5e-5
 SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
 SAVE_EVAL_STEPS: int = 1000
 
+
+#
 # Check for CUDA or MPS availability and set the device
+#
 device: torch.device | str
 if torch.backends.mps.is_available():
     device = torch.device("mps")
@@ -90,7 +98,11 @@ else:
 
 print(f"Device for fine-tuning SBERT: {device}")
 
-# Load the dataset
+
+#
+# Load and prepare the dataset
+#
+
 dataset: pd.DataFrame = pd.read_parquet("data/pairs-all.parquet")
 
 # Display the first few rows of the dataset
@@ -137,7 +149,7 @@ test_dataset: Dataset = Dataset.from_dict(
     }
 )
 
-# Initialize the SBERT model
+# Initialize and configure the SBERT model
 sbert_model: SentenceTransformer = SentenceTransformer(
     SBERT_MODEL,
     device=str(device),
@@ -150,8 +162,23 @@ sbert_model: SentenceTransformer = SentenceTransformer(
 # Enable gradient checkpointing to save memory
 sbert_model.gradient_checkpointing_enable()
 
-# Try it out - doesn't work very well without fine-tuning, although cross-lingual works somewhat
-print("\nTesting un-fine-tuned SBERT model:\n")
+# Put network in training mode
+sbert_model.train()
+
+# 2. Tell PyTorch to quantize the Linear layers in the encoder
+for module in sbert_model.modules():
+    if isinstance(module, torch.nn.Linear):
+        module.qconfig = tq.get_default_qat_qconfig("fbgemm")
+
+# 4. Prepare QAT: inserts FakeQuant and Observer modules
+tq.prepare_qat(sbert_model, inplace=True)
+
+
+#
+# Try the SBERT model out without fine-tuning. Multi-lingual comaprisons work somewhat.
+#
+
+print("\nTesting raw [un-fine-tuned] SBERT model:\n")
 examples: list[str | float | object] = []
 examples.append(
     [
@@ -176,7 +203,11 @@ examples.append(["Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lori
 examples_df: pd.DataFrame = pd.DataFrame(examples, columns=["sentence1", "sentence2", "similarity"])
 print(str(examples_df) + "\n")
 
+
+#
 # Evaluate a sample of the evaluation data compared using raw SBERT before fine-tuning
+#
+
 sample_df: pd.DataFrame = eval_df.sample(n=10000, random_state=RANDOM_SEED)
 result_df: pd.DataFrame = sbert_compare_multiple_df(
     sbert_model, sample_df["left_name"], sample_df["right_name"], sample_df["match"]
@@ -204,7 +235,7 @@ sample_dataset: Dataset = Dataset.from_dict(
     }
 )
 
-# Initialize the evaluator
+# Use ab evaluator to get trustworthy metrics for the match classification
 binary_acc_evaluator: BinaryClassificationEvaluator = BinaryClassificationEvaluator(
     sentences1=sample_dataset["sentence1"],
     sentences2=sample_dataset["sentence2"],
@@ -214,6 +245,7 @@ binary_acc_evaluator: BinaryClassificationEvaluator = BinaryClassificationEvalua
 binary_acc_df: pd.DataFrame = pd.DataFrame([binary_acc_evaluator(sbert_model)])
 print(str(binary_acc_df) + "\n")
 
+
 #
 # Fine-tune the SBERT model using contrastive loss
 #
@@ -221,6 +253,7 @@ print(str(binary_acc_df) + "\n")
 # This will effectively train the embedding model. MultipleNegativesRankingLoss did not work.
 loss: losses.ContrastiveLoss = losses.ContrastiveLoss(model=sbert_model)
 
+# Set lots of options to reduce memory usage and improve training speed
 sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingArguments(
     output_dir=SBERT_OUTPUT_FOLDER,
     num_train_epochs=EPOCHS,
@@ -261,7 +294,6 @@ trainer: SentenceTransformerTrainer = SentenceTransformerTrainer(
 trainer.train()  # type: ignore
 
 print(f"Best model checkpoint path: {trainer.state.best_model_checkpoint}")  # type: ignore
-
 print(pd.DataFrame([trainer.evaluate()]))
 
 trainer.save_model(SBERT_OUTPUT_FOLDER)  # type: ignore
@@ -269,24 +301,42 @@ print(f"Saved model to {SBERT_OUTPUT_FOLDER}")
 
 wandb.finish()
 
+
 #
 # Test out the fine-tuned model on the same examples as before. Note any improvements?
 #
-print("John Smith", "John Smith", sbert_compare(sbert_model, "John Smith", "John Smith"))
-print("John Smith", "John H. Smith", sbert_compare(sbert_model, "John Smith", "John H. Smith"))
+
+print("\nTesting fine-tuned SBERT model:\n")
+tuned_examples: list[str | float | object] = []
+tuned_examples.append(
+    [
+        "John Smith",
+        "John Smith",
+        sbert_compare(sbert_model, "John Smith", "John Smith"),
+    ]
+)
+tuned_examples.append(
+    ["John Smith", "John H. Smith", sbert_compare(sbert_model, "John Smith", "John H. Smith")]
+)
 # Decent starting russian performance
-print(
-    "Yevgeny Prigozhin",
-    "Евгений Пригожин",
-    sbert_compare(sbert_model, "Yevgeny Prigozhin", "Евгений Пригожин"),
+tuned_examples.append(
+    [
+        "Yevgeny Prigozhin",
+        "Евгений Пригожин",
+        sbert_compare(sbert_model, "Yevgeny Prigozhin", "Евгений Пригожин"),
+    ]
 )
 # Poor starting chinese performance - can we improve?
-print("Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡"))
-
+tuned_examples.append(["Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡")])
+tuned_examples_df: pd.DataFrame = pd.DataFrame(
+    tuned_examples, columns=["sentence1", "sentence2", "similarity"]
+)
+print(str(tuned_examples_df) + "\n")
 
 #
-# Evaluate ROC curve and determine optimal threshold
+# Evaluate ROC curve of the fine-tuned model and determine optimal threshold
 #
+
 y_true: list[float] = test_df["match"].astype(float).tolist()
 y_scores: np.ndarray[Any, Any] = sbert_compare_multiple(
     sbert_model, test_df["left_name"], test_df["right_name"]
@@ -323,3 +373,5 @@ plt.xlabel("Recall")
 plt.ylabel("Precision")
 plt.title("Augmented Test Set Precision-Recall Curve")
 plt.savefig("images/precision_recall_curve.png")
+
+# The Big Finish™
