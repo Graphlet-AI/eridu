@@ -96,6 +96,7 @@ warnings.simplefilter("ignore", UserWarning)
 # HuggingFace settings
 os.environ["HF_ENDPOINT"] = "https://huggingface.co/"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 # Configure Pandas to show more rows
 pd.set_option("display.max_rows", 40)
@@ -160,7 +161,7 @@ SBERT_MODEL = "BAAI/bge-m3"
 VARIANT = "original"
 MODEL_SAVE_NAME = (SBERT_MODEL + "-" + VARIANT).replace("/", "-")
 EPOCHS = 20
-BATCH_SIZE = 32
+BATCH_SIZE = 8
 PATIENCE = 2
 LEARNING_RATE = 5e-5
 SBERT_OUTPUT_FOLDER = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
