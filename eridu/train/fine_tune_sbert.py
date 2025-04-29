@@ -195,10 +195,10 @@ result_df = sbert_compare_multiple_df(
 error_df = np.abs(result_df.match.astype(float) - result_df.similarity)
 
 # Compute the mean, standard deviation, and interquartile range of the error
-mean_error, std_error, iqt_error = error_df.mean(), error_df.std(), iqr(error_df)
+mean_error, std_error, iqr_error = error_df.mean(), error_df.std(), iqr(error_df)
 stats_df = pd.DataFrame(  # retain and append fine-tuned SBERT stats for comparison
     [
-        {"mean": mean_error, "std": std_error, "iqr": iqt_error},
+        {"mean": mean_error, "std": std_error, "iqr": iqr_error},
     ],
     index=["Raw SBERT"],
 )
