@@ -1,3 +1,5 @@
+"""Fine-tunes a sentence transformer for people and company name matching using contrastive loss."""
+
 import json
 import logging
 import os
@@ -61,7 +63,6 @@ from transformers import (
     Trainer,
     TrainingArguments,
 )
-from transformers.integrations import WandbCallback
 
 from eridu.train.utils import (
     compute_classifier_metrics,
@@ -188,11 +189,12 @@ print(
 print("Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡"))
 
 # Evaluate a sample of the evaluation data compared using raw SBERT before fine-tuning
-sample_df = eval_df.sample(n=2000)
+sample_df = eval_df.sample(n=10000, random_state=RANDOM_SEED)
 result_df = sbert_compare_multiple_df(
     sbert_model, sample_df["left_name"], sample_df["right_name"], sample_df["match"]
 )
 error_df = np.abs(result_df.match.astype(float) - result_df.similarity)
+score_diff_df = sample_df.score - sample_df.similarity
 
 # Compute the mean, standard deviation, and interquartile range of the error
 mean_error, std_error, iqr_error = error_df.mean(), error_df.std(), iqr(error_df)
@@ -203,3 +205,63 @@ stats_df = pd.DataFrame(  # retain and append fine-tuned SBERT stats for compari
     index=["Raw SBERT"],
 )
 print(stats_df)
+
+# Make a Dataset from the sample data
+sample_dataset = Dataset.from_dict(
+    {
+        "sentence1": sample_df["left_name"].tolist(),
+        "sentence2": sample_df["right_name"].tolist(),
+        "label": sample_df["match"].astype(bool).tolist(),
+    }
+)
+
+# Initialize the evaluator
+binary_acc_evaluator = BinaryClassificationEvaluator(
+    sentences1=sample_dataset["sentence1"],
+    sentences2=sample_dataset["sentence2"],
+    labels=sample_dataset["label"],
+    name=SBERT_MODEL,
+)
+binary_acc_df = pd.DataFrame([binary_acc_evaluator(sbert_model)])
+print(binary_acc_df)
+
+#
+# Fine-tune the SBERT model using contrastive loss
+#
+
+# This will effectively train the embedding model. MultipleNegativesRankingLoss did not work.
+loss = losses.ContrastiveLoss(model=sbert_model)
+
+sbert_args = SentenceTransformerTrainingArguments(
+    output_dir=SBERT_OUTPUT_FOLDER,
+    num_train_epochs=EPOCHS,
+    per_device_train_batch_size=BATCH_SIZE,
+    per_device_eval_batch_size=BATCH_SIZE,
+    warmup_ratio=0.1,
+    run_name=SBERT_MODEL,
+    load_best_model_at_end=True,
+    save_total_limit=5,
+    save_steps=SAVE_EVAL_STEPS,
+    eval_steps=SAVE_EVAL_STEPS,
+    save_strategy="steps",
+    eval_strategy="steps",
+    greater_is_better=False,
+    metric_for_best_model="eval_loss",
+    learning_rate=LEARNING_RATE,
+    logging_dir="./logs",
+    weight_decay=0.02,
+)
+
+trainer = SentenceTransformerTrainer(
+    model=sbert_model,
+    args=sbert_args,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,
+    loss=loss,
+    evaluator=binary_acc_evaluator,
+    compute_metrics=compute_sbert_metrics,  # type: ignore
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=PATIENCE)],
+)
+
+# This will take a while - if you're using CPU you need to sample the training dataset down a lot
+trainer.train()  # type: ignore

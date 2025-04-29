@@ -28,11 +28,11 @@ version = "0.1.0"
 python = "^3.12"
 ipython = "^9.0.2"
 numpy = "^2.2"
+transformers = { version = "^4.51.3", extras = ["torch"] }
 sentence-transformers = { version = "^3.4.1", extras = ["torch"] }
 pandas = "^2.2.3"
 tqdm = "^4.67.1"
 pyarrow = "^19.0.1"
-transformers = "^4.50.1"
 wandb = "^0.19.8"
 jupyter = "^1.1.1"
 notebook = "^7.3.3"
@@ -41,6 +41,7 @@ click = "^8.1.7"
 requests = "^2.32.3"
 pyspark = "^3.5.5"
 datasets = "^3.5.1"
+accelerate = "^1.6.0"
 
 [tool.poetry.group.dev.dependencies]
 black = { version = "^25.1.0", extras = ["jupyter"] }
