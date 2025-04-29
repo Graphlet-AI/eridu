@@ -5,6 +5,7 @@ import os
 import random
 import sys
 import warnings
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -39,7 +40,7 @@ from eridu.train.utils import (
 )
 
 # For reproducibility
-RANDOM_SEED = 31337
+RANDOM_SEED: int = 31337
 random.seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
@@ -47,7 +48,7 @@ torch.mps.manual_seed(RANDOM_SEED)
 
 # Setup logging and suppress warnings
 logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 warnings.simplefilter("ignore", FutureWarning)
 warnings.simplefilter("ignore", UserWarning)
 
@@ -61,18 +62,19 @@ pd.set_option("display.max_rows", 40)
 pd.set_option("display.max_columns", None)
 
 # Configure sample size and model training parameters
-SAMPLE_FRACTION = 1.0
-SBERT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-VARIANT = "original"
-OPTIMIZER = "adafactor"
-MODEL_SAVE_NAME = (SBERT_MODEL + "-" + VARIANT + "-" + OPTIMIZER).replace("/", "-")
-EPOCHS = 4
-BATCH_SIZE = 128
-GRADIENT_ACCUMULATION_STEPS = 4
-PATIENCE = 2
-LEARNING_RATE = 5e-5
-SBERT_OUTPUT_FOLDER = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
-SAVE_EVAL_STEPS = 1000
+SAMPLE_FRACTION: float = 1.0
+SBERT_MODEL: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+# SBERT_MODEL: str = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
+VARIANT: str = "original"
+OPTIMIZER: str = "adafactor"
+MODEL_SAVE_NAME: str = (SBERT_MODEL + "-" + VARIANT + "-" + OPTIMIZER).replace("/", "-")
+EPOCHS: int = 6
+BATCH_SIZE: int = 512
+GRADIENT_ACCUMULATION_STEPS: int = 4
+PATIENCE: int = 2
+LEARNING_RATE: float = 5e-5
+SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
+SAVE_EVAL_STEPS: int = 1000
 
 # Check for CUDA or MPS availability and set the device
 device: torch.device | str
@@ -89,7 +91,7 @@ else:
 print(f"Device for fine-tuning SBERT: {device}")
 
 # Load the dataset
-dataset = pd.read_parquet("data/pairs-all.parquet")
+dataset: pd.DataFrame = pd.read_parquet("data/pairs-all.parquet")
 
 # Display the first few rows of the dataset
 print("\nRaw training data sample:\n")
@@ -100,6 +102,10 @@ if SAMPLE_FRACTION < 1.0:
     dataset = dataset.sample(frac=SAMPLE_FRACTION)
 
 # Split the dataset into training, evaluation, and test sets
+train_df: pd.DataFrame
+tmp_df: pd.DataFrame
+eval_df: pd.DataFrame
+test_df: pd.DataFrame
 train_df, tmp_df = train_test_split(dataset, test_size=0.2, random_state=RANDOM_SEED, shuffle=True)
 eval_df, test_df = train_test_split(tmp_df, test_size=0.5, random_state=RANDOM_SEED, shuffle=True)
 
@@ -109,21 +115,21 @@ print(f"Test data:       {len(eval_df):,}\n")
 
 # Convert the training, evaluation, and test sets to HuggingFace Datasets
 # Use float instead of bool for labels to avoid the subtraction error with boolean tensors
-train_dataset = Dataset.from_dict(
+train_dataset: Dataset = Dataset.from_dict(
     {
         "sentence1": train_df["left_name"].tolist(),
         "sentence2": train_df["right_name"].tolist(),
         "label": train_df["match"].astype(float).tolist(),
     }
 )
-eval_dataset = Dataset.from_dict(
+eval_dataset: Dataset = Dataset.from_dict(
     {
         "sentence1": eval_df["left_name"].tolist(),
         "sentence2": eval_df["right_name"].tolist(),
         "label": eval_df["match"].astype(float).tolist(),
     }
 )
-test_dataset = Dataset.from_dict(
+test_dataset: Dataset = Dataset.from_dict(
     {
         "sentence1": test_df["left_name"].tolist(),
         "sentence2": test_df["right_name"].tolist(),
@@ -132,7 +138,7 @@ test_dataset = Dataset.from_dict(
 )
 
 # Initialize the SBERT model
-sbert_model = SentenceTransformer(
+sbert_model: SentenceTransformer = SentenceTransformer(
     SBERT_MODEL,
     device=str(device),
     model_card_data=SentenceTransformerModelCardData(
@@ -167,19 +173,19 @@ examples.append(
 )
 # Poor starting chinese performance - can we improve?
 examples.append(["Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡")])
-examples_df = pd.DataFrame(examples, columns=["sentence1", "sentence2", "similarity"])
+examples_df: pd.DataFrame = pd.DataFrame(examples, columns=["sentence1", "sentence2", "similarity"])
 print(str(examples_df) + "\n")
 
 # Evaluate a sample of the evaluation data compared using raw SBERT before fine-tuning
-sample_df = eval_df.sample(n=10000, random_state=RANDOM_SEED)
-result_df = sbert_compare_multiple_df(
+sample_df: pd.DataFrame = eval_df.sample(n=10000, random_state=RANDOM_SEED)
+result_df: pd.DataFrame = sbert_compare_multiple_df(
     sbert_model, sample_df["left_name"], sample_df["right_name"], sample_df["match"]
 )
 error_s: pd.Series = np.abs(result_df.match.astype(float) - result_df.similarity)
 score_diff_s: pd.Series = np.abs(error_s - sample_df.score)
 
 # Compute the mean, standard deviation, and interquartile range of the error
-stats_df = pd.DataFrame(  # retain and append fine-tuned SBERT stats for comparison
+stats_df: pd.DataFrame = pd.DataFrame(  # retain and append fine-tuned SBERT stats for comparison
     [
         {"mean": error_s.mean(), "std": error_s.std(), "iqr": iqr(error_s)},
         {"mean": score_diff_s.mean(), "std": score_diff_s.std(), "iqr": iqr(score_diff_s.dropna())},
@@ -190,7 +196,7 @@ print("\nRaw SBERT model stats:")
 print(str(stats_df) + "\n")
 
 # Make a Dataset from the sample data
-sample_dataset = Dataset.from_dict(
+sample_dataset: Dataset = Dataset.from_dict(
     {
         "sentence1": sample_df["left_name"].tolist(),
         "sentence2": sample_df["right_name"].tolist(),
@@ -199,13 +205,13 @@ sample_dataset = Dataset.from_dict(
 )
 
 # Initialize the evaluator
-binary_acc_evaluator = BinaryClassificationEvaluator(
+binary_acc_evaluator: BinaryClassificationEvaluator = BinaryClassificationEvaluator(
     sentences1=sample_dataset["sentence1"],
     sentences2=sample_dataset["sentence2"],
     labels=sample_dataset["label"],  # Already converted to float above
     name=SBERT_MODEL,
 )
-binary_acc_df = pd.DataFrame([binary_acc_evaluator(sbert_model)])
+binary_acc_df: pd.DataFrame = pd.DataFrame([binary_acc_evaluator(sbert_model)])
 print(str(binary_acc_df) + "\n")
 
 #
@@ -213,9 +219,9 @@ print(str(binary_acc_df) + "\n")
 #
 
 # This will effectively train the embedding model. MultipleNegativesRankingLoss did not work.
-loss = losses.ContrastiveLoss(model=sbert_model)
+loss: losses.ContrastiveLoss = losses.ContrastiveLoss(model=sbert_model)
 
-sbert_args = SentenceTransformerTrainingArguments(
+sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingArguments(
     output_dir=SBERT_OUTPUT_FOLDER,
     num_train_epochs=EPOCHS,
     per_device_train_batch_size=BATCH_SIZE,
@@ -240,7 +246,7 @@ sbert_args = SentenceTransformerTrainingArguments(
     optim=OPTIMIZER,
 )
 
-trainer = SentenceTransformerTrainer(
+trainer: SentenceTransformerTrainer = SentenceTransformerTrainer(
     model=sbert_model,
     args=sbert_args,
     train_dataset=train_dataset,
@@ -281,28 +287,35 @@ print("Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗�
 #
 # Evaluate ROC curve and determine optimal threshold
 #
-y_true = test_df["match"].astype(float).tolist()
-y_scores = sbert_compare_multiple(sbert_model, test_df["left_name"], test_df["right_name"])
+y_true: list[float] = test_df["match"].astype(float).tolist()
+y_scores: np.ndarray[Any, Any] = sbert_compare_multiple(
+    sbert_model, test_df["left_name"], test_df["right_name"]
+)
 
 # Compute precision-recall curve
+precision: list[float]
+recall: list[float]
+thresholds: list[float]
 precision, recall, thresholds = precision_recall_curve(y_true, y_scores)
 
 # Compute F1 score for each threshold
-f1_scores = [f1_score(y_true, y_scores >= t) for t in thresholds]
+f1_scores: list[float] = [f1_score(y_true, y_scores >= t) for t in thresholds]
 
 # Find the threshold that maximizes the F1 score
 best_threshold_index = np.argmax(f1_scores)
-best_threshold = thresholds[best_threshold_index]
-best_f1_score = f1_scores[best_threshold_index]
+best_threshold: float = thresholds[best_threshold_index]
+best_f1_score: float = f1_scores[best_threshold_index]
 
 print(f"Best Threshold: {best_threshold}")
 print(f"Best F1 Score: {best_f1_score}")
 
-roc_auc = roc_auc_score(y_true, y_scores)
+roc_auc: float = roc_auc_score(y_true, y_scores)
 print(f"AUC-ROC: {roc_auc}")
 
 # Create a DataFrame for Seaborn
-pr_data = pd.DataFrame({"Precision": precision[:-1], "Recall": recall[:-1], "F1 Score": f1_scores})
+pr_data: pd.DataFrame = pd.DataFrame(
+    {"Precision": precision[:-1], "Recall": recall[:-1], "F1 Score": f1_scores}
+)
 
 # Plot Precision-Recall curve using Seaborn and save to disk
 sns.lineplot(data=pr_data, x="Recall", y="Precision", marker="o")
