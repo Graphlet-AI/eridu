@@ -131,25 +131,26 @@ print(f"Evaluation data: {len(eval_df):,}")
 print(f"Test data:       {len(eval_df):,}")
 
 # Convert the training, evaluation, and test sets to HuggingFace Datasets
+# Use float instead of bool for labels to avoid the subtraction error with boolean tensors
 train_dataset = Dataset.from_dict(
     {
         "sentence1": train_df["left_name"].tolist(),
         "sentence2": train_df["right_name"].tolist(),
-        "label": train_df["match"].astype(bool).tolist(),
+        "label": train_df["match"].astype(float).tolist(),
     }
 )
 eval_dataset = Dataset.from_dict(
     {
         "sentence1": eval_df["left_name"].tolist(),
         "sentence2": eval_df["right_name"].tolist(),
-        "label": eval_df["match"].astype(bool).tolist(),
+        "label": eval_df["match"].astype(float).tolist(),
     }
 )
 test_dataset = Dataset.from_dict(
     {
         "sentence1": test_df["left_name"].tolist(),
         "sentence2": test_df["right_name"].tolist(),
-        "label": test_df["match"].astype(bool).tolist(),
+        "label": test_df["match"].astype(float).tolist(),
     }
 )
 
@@ -193,16 +194,16 @@ sample_df = eval_df.sample(n=10000, random_state=RANDOM_SEED)
 result_df = sbert_compare_multiple_df(
     sbert_model, sample_df["left_name"], sample_df["right_name"], sample_df["match"]
 )
-error_df = np.abs(result_df.match.astype(float) - result_df.similarity)
-score_diff_df = sample_df.score - sample_df.similarity
+error_s: pd.Series = np.abs(result_df.match.astype(float) - result_df.similarity)
+score_diff_s: pd.Series = np.abs(error_s - sample_df.score)
 
 # Compute the mean, standard deviation, and interquartile range of the error
-mean_error, std_error, iqr_error = error_df.mean(), error_df.std(), iqr(error_df)
 stats_df = pd.DataFrame(  # retain and append fine-tuned SBERT stats for comparison
     [
-        {"mean": mean_error, "std": std_error, "iqr": iqr_error},
+        {"mean": error_s.mean(), "std": error_s.std(), "iqr": iqr(error_s)},
+        {"mean": score_diff_s.mean(), "std": score_diff_s.std(), "iqr": iqr(score_diff_s.dropna())},
     ],
-    index=["Raw SBERT"],
+    index=["Raw SBERT", "Raw SBERT - Levenshtein Similarity"],
 )
 print(stats_df)
 
@@ -211,7 +212,7 @@ sample_dataset = Dataset.from_dict(
     {
         "sentence1": sample_df["left_name"].tolist(),
         "sentence2": sample_df["right_name"].tolist(),
-        "label": sample_df["match"].astype(bool).tolist(),
+        "label": sample_df["match"].astype(float).tolist(),  # Use float instead of bool
     }
 )
 
@@ -219,7 +220,7 @@ sample_dataset = Dataset.from_dict(
 binary_acc_evaluator = BinaryClassificationEvaluator(
     sentences1=sample_dataset["sentence1"],
     sentences2=sample_dataset["sentence2"],
-    labels=sample_dataset["label"],
+    labels=sample_dataset["label"],  # Already converted to float above
     name=SBERT_MODEL,
 )
 binary_acc_df = pd.DataFrame([binary_acc_evaluator(sbert_model)])
