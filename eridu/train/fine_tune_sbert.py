@@ -123,7 +123,7 @@ BATCH_SIZE = 8
 PATIENCE = 2
 LEARNING_RATE = 5e-5
 SBERT_OUTPUT_FOLDER = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
-SAVE_EVAL_STEPS = 100
+SAVE_EVAL_STEPS = 10000
 
 # Initialize the SBERT model
 sbert_model = SentenceTransformer(
