@@ -21,6 +21,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from datasets import Dataset
 from scipy.spatial import distance  # type: ignore
+from scipy.stats import iqr  # type: ignore
 from sentence_transformers import (
     InputExample,
     SentencesDataset,
@@ -72,6 +73,7 @@ from eridu.train.utils import (
     sbert_compare,
     sbert_compare_binary,
     sbert_compare_multiple,
+    sbert_compare_multiple_df,
     sbert_match,
     sbert_match_binary,
     tokenize_function,
@@ -165,7 +167,7 @@ SAVE_EVAL_STEPS = 100
 # Initialize the SBERT model
 sbert_model = SentenceTransformer(
     SBERT_MODEL,
-    device=device,
+    device=str(device),
     model_card_data=SentenceTransformerModelCardData(
         language="en",
         license="apache-2.0",
@@ -174,10 +176,30 @@ sbert_model = SentenceTransformer(
 )
 
 # Try it out - doesn't work very well without fine-tuning, although cross-lingual works somewhat
-print(sbert_compare(sbert_model, "John Smith", "John Smith"))
-print(sbert_compare(sbert_model, "John Smith", "John H. Smith"))
-print(sbert_compare(sbert_model, "Yevgeny Prigozhin", "Евгений Пригожин"))
+print("John Smith", "John Smith", sbert_compare(sbert_model, "John Smith", "John Smith"))
+print("John Smith", "John H. Smith", sbert_compare(sbert_model, "John Smith", "John H. Smith"))
+# Decent starting russian performance
+print(
+    "Yevgeny Prigozhin",
+    "Евгений Пригожин",
+    sbert_compare(sbert_model, "Yevgeny Prigozhin", "Евгений Пригожин"),
+)
+# Poor starting chinese performance - can we improve?
+print("Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡"))
 
-# Print a sample of the evaluation data compared using raw SBERT before fine-tuning
-print_df = eval_df.sample(n=100)
-sbert_compare_multiple(sbert_model, print_df["left_name"], print_df["right_name"])
+# Evaluate a sample of the evaluation data compared using raw SBERT before fine-tuning
+sample_df = eval_df.sample(n=2000)
+result_df = sbert_compare_multiple_df(
+    sbert_model, sample_df["left_name"], sample_df["right_name"], sample_df["match"]
+)
+error_df = np.abs(result_df.match.astype(float) - result_df.similarity)
+
+# Compute the mean, standard deviation, and interquartile range of the error
+mean_error, std_error, iqt_error = error_df.mean(), error_df.std(), iqr(error_df)
+stats_df = pd.DataFrame(  # retain and append fine-tuned SBERT stats for comparison
+    [
+        {"mean": mean_error, "std": std_error, "iqr": iqt_error},
+    ],
+    index=["Raw SBERT"],
+)
+print(stats_df)
