@@ -60,6 +60,19 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 pd.set_option("display.max_rows", 40)
 pd.set_option("display.max_columns", None)
 
+# Configure sample size and model training parameters
+# SBERT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+SAMPLE_FRACTION = 0.05
+SBERT_MODEL = "BAAI/bge-m3"
+VARIANT = "original"
+MODEL_SAVE_NAME = (SBERT_MODEL + "-" + VARIANT).replace("/", "-")
+EPOCHS = 20
+BATCH_SIZE = 32
+PATIENCE = 2
+LEARNING_RATE = 5e-5
+SBERT_OUTPUT_FOLDER = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
+SAVE_EVAL_STEPS = 10000
+
 # Check for CUDA or MPS availability and set the device
 device: torch.device | str
 if torch.backends.mps.is_available():
@@ -82,12 +95,14 @@ print("\nRaw training data sample:\n")
 print(dataset.head())
 
 # Split the dataset into training, evaluation, and test sets
-train_df, tmp_df = train_test_split(dataset, test_size=0.2, random_state=RANDOM_SEED, shuffle=True)
+train_df, tmp_df = train_test_split(
+    dataset.sample(frac=SAMPLE_FRACTION), test_size=0.2, random_state=RANDOM_SEED, shuffle=True
+)
 eval_df, test_df = train_test_split(tmp_df, test_size=0.5, random_state=RANDOM_SEED, shuffle=True)
 
 print(f"\nTraining data:   {len(train_df):,}")
 print(f"Evaluation data: {len(eval_df):,}")
-print(f"Test data:       {len(eval_df):,}")
+print(f"Test data:       {len(eval_df):,}\n")
 
 # Convert the training, evaluation, and test sets to HuggingFace Datasets
 # Use float instead of bool for labels to avoid the subtraction error with boolean tensors
@@ -113,18 +128,6 @@ test_dataset = Dataset.from_dict(
     }
 )
 
-# Configure training parameters
-# SBERT_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-SBERT_MODEL = "BAAI/bge-m3"
-VARIANT = "original"
-MODEL_SAVE_NAME = (SBERT_MODEL + "-" + VARIANT).replace("/", "-")
-EPOCHS = 20
-BATCH_SIZE = 8
-PATIENCE = 2
-LEARNING_RATE = 5e-5
-SBERT_OUTPUT_FOLDER = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
-SAVE_EVAL_STEPS = 10000
-
 # Initialize the SBERT model
 sbert_model = SentenceTransformer(
     SBERT_MODEL,
@@ -137,6 +140,7 @@ sbert_model = SentenceTransformer(
 )
 
 # Try it out - doesn't work very well without fine-tuning, although cross-lingual works somewhat
+print("\nTesting raw SBERT model:\n")
 print("John Smith", "John Smith", sbert_compare(sbert_model, "John Smith", "John Smith"))
 print("John Smith", "John H. Smith", sbert_compare(sbert_model, "John Smith", "John H. Smith"))
 # Decent starting russian performance
@@ -164,7 +168,8 @@ stats_df = pd.DataFrame(  # retain and append fine-tuned SBERT stats for compari
     ],
     index=["Raw SBERT", "Raw SBERT - Levenshtein Similarity"],
 )
-print(stats_df)
+print("\nRaw SBERT model stats:\n")
+print(str(stats_df) + "\n")
 
 # Make a Dataset from the sample data
 sample_dataset = Dataset.from_dict(
@@ -183,7 +188,7 @@ binary_acc_evaluator = BinaryClassificationEvaluator(
     name=SBERT_MODEL,
 )
 binary_acc_df = pd.DataFrame([binary_acc_evaluator(sbert_model)])
-print(binary_acc_df)
+print(str(binary_acc_df) + "\n")
 
 #
 # Fine-tune the SBERT model using contrastive loss
@@ -197,6 +202,8 @@ sbert_args = SentenceTransformerTrainingArguments(
     num_train_epochs=EPOCHS,
     per_device_train_batch_size=BATCH_SIZE,
     per_device_eval_batch_size=BATCH_SIZE,
+    fp16=True,
+    fp16_opt_level="O1",  # “auto” AMP level
     warmup_ratio=0.1,
     run_name=SBERT_MODEL,
     load_best_model_at_end=True,
@@ -210,6 +217,8 @@ sbert_args = SentenceTransformerTrainingArguments(
     learning_rate=LEARNING_RATE,
     logging_dir="./logs",
     weight_decay=0.02,
+    gradient_accumulation_steps=4,
+    gradient_checkpointing=True,
 )
 
 trainer = SentenceTransformerTrainer(
