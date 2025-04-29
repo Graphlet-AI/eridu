@@ -65,9 +65,11 @@ pd.set_option("display.max_columns", None)
 SAMPLE_FRACTION = 0.05
 SBERT_MODEL = "BAAI/bge-m3"
 VARIANT = "original"
-MODEL_SAVE_NAME = (SBERT_MODEL + "-" + VARIANT).replace("/", "-")
-EPOCHS = 20
-BATCH_SIZE = 32
+OPTIMIZER = "adafactor"
+MODEL_SAVE_NAME = (SBERT_MODEL + "-" + VARIANT + "-" + OPTIMIZER).replace("/", "-")
+EPOCHS = 4
+BATCH_SIZE = 128
+GRADIENT_ACCUMULATION_STEPS = 4
 PATIENCE = 2
 LEARNING_RATE = 5e-5
 SBERT_OUTPUT_FOLDER = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
@@ -140,17 +142,30 @@ sbert_model = SentenceTransformer(
 )
 
 # Try it out - doesn't work very well without fine-tuning, although cross-lingual works somewhat
-print("\nTesting raw SBERT model:\n")
-print("John Smith", "John Smith", sbert_compare(sbert_model, "John Smith", "John Smith"))
-print("John Smith", "John H. Smith", sbert_compare(sbert_model, "John Smith", "John H. Smith"))
+print("\nTesting un-fine-tuned SBERT model:\n")
+examples: list[str | float | object] = []
+examples.append(
+    [
+        "John Smith",
+        "John Smith",
+        sbert_compare(sbert_model, "John Smith", "John Smith"),
+    ]
+)
+examples.append(
+    ["John Smith", "John H. Smith", sbert_compare(sbert_model, "John Smith", "John H. Smith")]
+)
 # Decent starting russian performance
-print(
-    "Yevgeny Prigozhin",
-    "Евгений Пригожин",
-    sbert_compare(sbert_model, "Yevgeny Prigozhin", "Евгений Пригожин"),
+examples.append(
+    [
+        "Yevgeny Prigozhin",
+        "Евгений Пригожин",
+        sbert_compare(sbert_model, "Yevgeny Prigozhin", "Евгений Пригожин"),
+    ]
 )
 # Poor starting chinese performance - can we improve?
-print("Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡"))
+examples.append(["Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡")])
+examples_df = pd.DataFrame(examples, columns=["sentence1", "sentence2", "similarity"])
+print(str(examples_df) + "\n")
 
 # Evaluate a sample of the evaluation data compared using raw SBERT before fine-tuning
 sample_df = eval_df.sample(n=10000, random_state=RANDOM_SEED)
@@ -166,9 +181,9 @@ stats_df = pd.DataFrame(  # retain and append fine-tuned SBERT stats for compari
         {"mean": error_s.mean(), "std": error_s.std(), "iqr": iqr(error_s)},
         {"mean": score_diff_s.mean(), "std": score_diff_s.std(), "iqr": iqr(score_diff_s.dropna())},
     ],
-    index=["Raw SBERT", "Raw SBERT - Levenshtein Similarity"],
+    index=["Raw SBERT", "Raw SBERT - Levenshtein Score"],
 )
-print("\nRaw SBERT model stats:\n")
+print("\nRaw SBERT model stats:")
 print(str(stats_df) + "\n")
 
 # Make a Dataset from the sample data
@@ -217,8 +232,9 @@ sbert_args = SentenceTransformerTrainingArguments(
     learning_rate=LEARNING_RATE,
     logging_dir="./logs",
     weight_decay=0.02,
-    gradient_accumulation_steps=4,
+    gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
     gradient_checkpointing=True,
+    optim=OPTIMIZER,
 )
 
 trainer = SentenceTransformerTrainer(
