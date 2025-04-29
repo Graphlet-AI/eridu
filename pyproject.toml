@@ -56,6 +56,7 @@ nbdime = "^4.0.2"
 jupyter-black = "^0.4.0"
 pyarrow-stubs = "^19.1"
 types-seaborn = "^0.13.2.20250111"
+scipy-stubs = "^1.15.2.2"
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]
