@@ -1,5 +1,7 @@
 """Main CLI module for Eridu."""
 
+import os
+from importlib import import_module
 from pathlib import Path
 
 import click
@@ -13,6 +15,47 @@ from tqdm import tqdm
 def cli() -> None:
     """Eridu: Fuzzy matching people and company names for entity resolution using representation learning"""
     pass
+
+
+@cli.command(name="train")
+@click.option(
+    "--model",
+    default="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    show_default=True,
+    help="Base SBERT model to fine-tune",
+)
+@click.option(
+    "--sample-fraction",
+    default=0.1,
+    show_default=True,
+    help="Fraction of data to sample for training (1.0 = use all data)",
+)
+@click.option("--batch-size", default=1024, show_default=True, help="Batch size for training")
+@click.option("--epochs", default=6, show_default=True, help="Number of training epochs")
+@click.option(
+    "--fp16/--no-fp16", default=False, show_default=True, help="Use mixed precision training (fp16)"
+)
+def train(model: str, sample_fraction: float, batch_size: int, epochs: int, fp16: bool) -> None:
+    """Fine-tune a sentence transformer (SBERT) model for entity matching."""
+    click.echo(f"Fine-tuning SBERT model: {model}")
+    click.echo(f"Sample fraction: {sample_fraction}")
+    click.echo(f"Batch size: {batch_size}")
+    click.echo(f"Epochs: {epochs}")
+    click.echo(f"FP16: {fp16}")
+
+    # Set environment variables based on CLI options
+    os.environ["SBERT_MODEL"] = model
+    os.environ["SAMPLE_FRACTION"] = str(sample_fraction)
+    os.environ["BATCH_SIZE"] = str(batch_size)
+    os.environ["EPOCHS"] = str(epochs)
+
+    # Disable fp16 if requested (important to fix the Half tensor error)
+    if not fp16:
+        os.environ["USE_FP16"] = "False"
+
+    # Import the fine_tune_sbert module here to avoid circular imports and run the module
+    fine_tune_module = import_module("eridu.train.fine_tune_sbert")
+    fine_tune_module.main()
 
 
 @cli.group()

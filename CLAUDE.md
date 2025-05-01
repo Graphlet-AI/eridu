@@ -20,5 +20,4 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Claude Code Style
 
-- Specificity - try not to get off track. Keep your changes central to the request, keep line-count moderate for a single change.
-- PySpark - Limit the number of functions within scripts that control dataflow. We prefer a more linear flow.
+- PySpark - Limit the number of functions within scripts that control dataflow in Spark scripts. We prefer a more linear flow. This only applie to Spark code.

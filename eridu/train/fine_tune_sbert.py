@@ -66,25 +66,28 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 pd.set_option("display.max_rows", 40)
 pd.set_option("display.max_columns", None)
 
-# Configure sample size and model training parameters
-SAMPLE_FRACTION: float = 0.1
-SBERT_MODEL: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+# Configure sample size and model training parameters from environment or defaults
+SAMPLE_FRACTION: float = float(os.environ.get("SAMPLE_FRACTION", "0.1"))
+SBERT_MODEL: str = os.environ.get(
+    "SBERT_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+)
 # SBERT_MODEL: str = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
-VARIANT: str = "original"
-OPTIMIZER: str = "adafactor"
+VARIANT: str = os.environ.get("VARIANT", "original")
+OPTIMIZER: str = os.environ.get("OPTIMIZER", "adafactor")
 MODEL_SAVE_NAME: str = (SBERT_MODEL + "-" + VARIANT + "-" + OPTIMIZER).replace("/", "-")
-EPOCHS: int = 6
-BATCH_SIZE: int = 1024
-GRADIENT_ACCUMULATION_STEPS: int = 4
-PATIENCE: int = 2
-LEARNING_RATE: float = 5e-5
+EPOCHS: int = int(os.environ.get("EPOCHS", "6"))
+BATCH_SIZE: int = int(os.environ.get("BATCH_SIZE", "1024"))
+GRADIENT_ACCUMULATION_STEPS: int = int(os.environ.get("GRADIENT_ACCUMULATION_STEPS", "4"))
+PATIENCE: int = int(os.environ.get("PATIENCE", "2"))
+LEARNING_RATE: float = float(os.environ.get("LEARNING_RATE", "5e-5"))
 SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
-SAVE_EVAL_STEPS: int = 1000
-
+SAVE_EVAL_STEPS: int = int(os.environ.get("SAVE_EVAL_STEPS", "100"))
+USE_FP16: bool = os.environ.get("USE_FP16", "True").lower() == "true"
 
 #
 # Check for CUDA or MPS availability and set the device
 #
+
 device: torch.device | str
 if torch.backends.mps.is_available():
     device = torch.device("mps")
@@ -97,7 +100,6 @@ else:
     logger.debug("Using CPU for ML")
 
 print(f"Device for fine-tuning SBERT: {device}")
-
 
 #
 # Load and prepare the dataset
@@ -165,14 +167,15 @@ sbert_model.gradient_checkpointing_enable()
 # Put network in training mode
 sbert_model.train()
 
-# 2. Tell PyTorch to quantize the Linear layers in the encoder
-for module in sbert_model.modules():
-    if isinstance(module, torch.nn.Linear):
-        module.qconfig = tq.get_default_qat_qconfig("fbgemm")
+# Only apply quantization when not using fp16 to avoid conflicts
+if not USE_FP16:
+    # 2. Tell PyTorch to quantize the Linear layers in the encoder
+    for module in sbert_model.modules():
+        if isinstance(module, torch.nn.Linear):
+            module.qconfig = tq.get_default_qat_qconfig("fbgemm")
 
-# 4. Prepare QAT: inserts FakeQuant and Observer modules
-tq.prepare_qat(sbert_model, inplace=True)
-
+    # 4. Prepare QAT: inserts FakeQuant and Observer modules
+    tq.prepare_qat(sbert_model, inplace=True)
 
 #
 # Try the SBERT model out without fine-tuning. Multi-lingual comaprisons work somewhat.
@@ -202,7 +205,6 @@ examples.append(
 examples.append(["Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡")])
 examples_df: pd.DataFrame = pd.DataFrame(examples, columns=["sentence1", "sentence2", "similarity"])
 print(str(examples_df) + "\n")
-
 
 #
 # Evaluate a sample of the evaluation data compared using raw SBERT before fine-tuning
@@ -245,7 +247,6 @@ binary_acc_evaluator: BinaryClassificationEvaluator = BinaryClassificationEvalua
 binary_acc_df: pd.DataFrame = pd.DataFrame([binary_acc_evaluator(sbert_model)])
 print(str(binary_acc_df) + "\n")
 
-
 #
 # Fine-tune the SBERT model using contrastive loss
 #
@@ -259,8 +260,8 @@ sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingAr
     num_train_epochs=EPOCHS,
     per_device_train_batch_size=BATCH_SIZE,
     per_device_eval_batch_size=BATCH_SIZE,
-    fp16=True,
-    fp16_opt_level="O1",  # “auto” AMP level
+    fp16=USE_FP16,
+    fp16_opt_level="O1" if USE_FP16 else "O0",
     warmup_ratio=0.1,
     run_name=SBERT_MODEL,
     load_best_model_at_end=True,
@@ -300,7 +301,6 @@ trainer.save_model(SBERT_OUTPUT_FOLDER)  # type: ignore
 print(f"Saved model to {SBERT_OUTPUT_FOLDER}")
 
 wandb.finish()
-
 
 #
 # Test out the fine-tuned model on the same examples as before. Note any improvements?
@@ -374,4 +374,28 @@ plt.ylabel("Precision")
 plt.title("Augmented Test Set Precision-Recall Curve")
 plt.savefig("images/precision_recall_curve.png")
 
-# The Big Finish™
+
+def main() -> None:
+    """Main function for running the SBERT fine-tuning process from CLI.
+
+    This function is intended to be called by the Eridu CLI.
+    It has already accessed environment variables for configuration.
+    All other processing code is in the module's global scope.
+    """
+    # Settings have already been processed when module was imported
+    print("Fine-tuning SBERT model with the following parameters:")
+    print(f"  Model: {SBERT_MODEL}")
+    print(f"  Sample fraction: {SAMPLE_FRACTION}")
+    print(f"  Batch size: {BATCH_SIZE}")
+    print(f"  Epochs: {EPOCHS}")
+    print(f"  FP16: {USE_FP16}")
+    print(f"  Device: {device}")
+    print(f"  Output folder: {SBERT_OUTPUT_FOLDER}")
+
+    # The model training actually happens at import time
+    # This is a simple stub function to match the CLI's expected interface
+
+
+if __name__ == "__main__":
+    # If directly executed (not imported), run main
+    main()
