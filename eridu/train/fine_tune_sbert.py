@@ -67,7 +67,7 @@ pd.set_option("display.max_rows", 40)
 pd.set_option("display.max_columns", None)
 
 # Configure sample size and model training parameters from environment or defaults
-SAMPLE_FRACTION: float = float(os.environ.get("SAMPLE_FRACTION", "0.1"))
+SAMPLE_FRACTION: float = float(os.environ.get("SAMPLE_FRACTION", "0.01"))
 SBERT_MODEL: str = os.environ.get(
     "SBERT_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 )

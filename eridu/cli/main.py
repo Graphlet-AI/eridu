@@ -26,14 +26,14 @@ def cli() -> None:
 )
 @click.option(
     "--sample-fraction",
-    default=0.1,
+    default=0.01,
     show_default=True,
     help="Fraction of data to sample for training (1.0 = use all data)",
 )
 @click.option("--batch-size", default=1024, show_default=True, help="Batch size for training")
 @click.option("--epochs", default=6, show_default=True, help="Number of training epochs")
 @click.option(
-    "--fp16/--no-fp16", default=False, show_default=True, help="Use mixed precision training (fp16)"
+    "--fp16/--no-fp16", default=True, show_default=True, help="Use mixed precision training (fp16)"
 )
 def train(model: str, sample_fraction: float, batch_size: int, epochs: int, fp16: bool) -> None:
     """Fine-tune a sentence transformer (SBERT) model for entity matching."""
