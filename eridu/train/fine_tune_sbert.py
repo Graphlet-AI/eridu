@@ -220,22 +220,28 @@ examples.append(
     [
         "John Smith",
         "John Smith",
-        sbert_compare(sbert_model, "John Smith", "John Smith"),
+        sbert_compare(sbert_model, "John Smith", "John Smith", use_gpu=True),
     ]
 )
 examples.append(
-    ["John Smith", "John H. Smith", sbert_compare(sbert_model, "John Smith", "John H. Smith")]
+    [
+        "John Smith",
+        "John H. Smith",
+        sbert_compare(sbert_model, "John Smith", "John H. Smith", use_gpu=True),
+    ]
 )
 # Decent starting russian performance
 examples.append(
     [
         "Yevgeny Prigozhin",
         "Евгений Пригожин",
-        sbert_compare(sbert_model, "Yevgeny Prigozhin", "Евгений Пригожин"),
+        sbert_compare(sbert_model, "Yevgeny Prigozhin", "Евгений Пригожин", use_gpu=True),
     ]
 )
 # Poor starting chinese performance - can we improve?
-examples.append(["Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡")])
+examples.append(
+    ["Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡", use_gpu=True)]
+)
 examples_df: pd.DataFrame = pd.DataFrame(examples, columns=["sentence1", "sentence2", "similarity"])
 print(str(examples_df) + "\n")
 
@@ -243,9 +249,15 @@ print(str(examples_df) + "\n")
 # Evaluate a sample of the evaluation data compared using raw SBERT before fine-tuning
 #
 
-sample_df: pd.DataFrame = eval_df.sample(frac=SAMPLE_FRACTION, random_state=RANDOM_SEED)
+# Use a simple approach for evaluation sampling
+sample_df: pd.DataFrame = eval_df.sample(frac=0.1, random_state=RANDOM_SEED)
+# Make sure we have at least a few samples
+if len(sample_df) < 5 and len(eval_df) >= 5:
+    sample_df = eval_df.sample(n=5, random_state=RANDOM_SEED)
+print(f"Running initial evaluation on {device} for {len(sample_df):,} sample records")
+
 result_df: pd.DataFrame = sbert_compare_multiple_df(
-    sbert_model, sample_df["left_name"], sample_df["right_name"], sample_df["match"]
+    sbert_model, sample_df["left_name"], sample_df["right_name"], sample_df["match"], use_gpu=True
 )
 error_s: pd.Series = np.abs(result_df.match.astype(float) - result_df.similarity)
 score_diff_s: pd.Series = np.abs(error_s - sample_df.score)
@@ -363,7 +375,7 @@ print(pd.DataFrame([trainer.evaluate()]))
 trainer.save_model(SBERT_OUTPUT_FOLDER)  # type: ignore
 print(f"Saved model to {SBERT_OUTPUT_FOLDER}")
 
-wandb.finish()
+# Don't finish wandb yet - keep it running for the final evaluation metrics
 
 #
 # Test out the fine-tuned model on the same examples as before. Note any improvements?
@@ -375,22 +387,28 @@ tuned_examples.append(
     [
         "John Smith",
         "John Smith",
-        sbert_compare(sbert_model, "John Smith", "John Smith"),
+        sbert_compare(sbert_model, "John Smith", "John Smith", use_gpu=True),
     ]
 )
 tuned_examples.append(
-    ["John Smith", "John H. Smith", sbert_compare(sbert_model, "John Smith", "John H. Smith")]
+    [
+        "John Smith",
+        "John H. Smith",
+        sbert_compare(sbert_model, "John Smith", "John H. Smith", use_gpu=True),
+    ]
 )
 # Decent starting russian performance
 tuned_examples.append(
     [
         "Yevgeny Prigozhin",
         "Евгений Пригожин",
-        sbert_compare(sbert_model, "Yevgeny Prigozhin", "Евгений Пригожин"),
+        sbert_compare(sbert_model, "Yevgeny Prigozhin", "Евгений Пригожин", use_gpu=True),
     ]
 )
 # Poor starting chinese performance - can we improve?
-tuned_examples.append(["Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡")])
+tuned_examples.append(
+    ["Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡", use_gpu=True)]
+)
 tuned_examples_df: pd.DataFrame = pd.DataFrame(
     tuned_examples, columns=["sentence1", "sentence2", "similarity"]
 )
@@ -400,9 +418,17 @@ print(str(tuned_examples_df) + "\n")
 # Evaluate ROC curve of the fine-tuned model and determine optimal threshold
 #
 
+# Use a simpler sampling approach for test data
+# Use 10% of test data or at least 10 samples, whichever is larger
+test_sample_size = max(int(len(test_df) * 0.1), min(len(test_df), 10))
+test_df = test_df.sample(n=test_sample_size, random_state=RANDOM_SEED)
+
 y_true: list[float] = test_df["match"].astype(float).tolist()
+# Use GPU acceleration for inference
+print(f"Running inference on {device} for {len(test_df):,} test records")
+
 y_scores: np.ndarray[Any, Any] = sbert_compare_multiple(
-    sbert_model, test_df["left_name"], test_df["right_name"]
+    sbert_model, test_df["left_name"], test_df["right_name"], use_gpu=True
 )
 
 # Compute precision-recall curve
@@ -449,8 +475,19 @@ wandb.log(
     }
 )
 
-# Log the precision-recall curve to W&B
-wandb.log({"final/pr_curve": wandb.plot.pr_curve(y_true, y_scores, labels=["match"])})
+# Log the precision-recall curve to W&B - avoid using labels parameter to prevent indexing error
+try:
+    # Convert to the format W&B expects (binary classification probabilities)
+    # For binary classification, W&B expects shape (n_samples, 2) for probabilities
+    y_probs_formatted = np.vstack([1 - y_scores, y_scores]).T
+    wandb.log({"final/pr_curve": wandb.plot.pr_curve(y_true, y_probs_formatted)})
+except Exception as e:
+    print(f"Warning: Could not log PR curve to W&B: {e}")
+    # Log individual metrics instead
+    wandb.log({"final/y_true": y_true, "final/y_scores": y_scores.tolist()})
+
+# Now it's safe to finish wandb
+wandb.finish()
 
 
 def main() -> None:
