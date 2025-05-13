@@ -5196,6 +5196,18 @@ tests = ["autopep8", "isort", "llnl-hatchet", "numpy", "pytest", "pytest-forked"
 tutorials = ["matplotlib", "pandas", "tabulate"]
 
 [[package]]
+name = "trove-classifiers"
+version = "2025.5.9.12"
+description = "Canonical source for classifiers on PyPI (pypi.org)."
+optional = false
+python-versions = "*"
+groups = ["dev"]
+files = [
+    {file = "trove_classifiers-2025.5.9.12-py3-none-any.whl", hash = "sha256:e381c05537adac78881c8fa345fd0e9970159f4e4a04fcc42cfd3129cca640ce"},
+    {file = "trove_classifiers-2025.5.9.12.tar.gz", hash = "sha256:7ca7c8a7a76e2cd314468c677c69d12cc2357711fcab4a60f87994c1589e5cb5"},
+]
+
+[[package]]
 name = "types-python-dateutil"
 version = "2.9.0.20241206"
 description = "Typing stubs for python-dateutil"
@@ -5337,6 +5349,27 @@ brotli = ["brotli (>=1.0.9) ; platform_python_implementation == \"CPython\"", "b
 h2 = ["h2 (>=4,<5)"]
 socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
 zstd = ["zstandard (>=0.18.0)"]
+
+[[package]]
+name = "validate-pyproject"
+version = "0.24.1"
+description = "Validation library and CLI tool for checking on 'pyproject.toml' files using JSON Schema"
+optional = false
+python-versions = ">=3.8"
+groups = ["dev"]
+files = [
+    {file = "validate_pyproject-0.24.1-py3-none-any.whl", hash = "sha256:b7b05fa9117204c9c4606ab317acd095b18d1bfc78fb7dc8cc06f77d0582ca2d"},
+    {file = "validate_pyproject-0.24.1.tar.gz", hash = "sha256:e182fc51354add988e5bee6fc06ceb327832a78d921730fc618275e5b29e6b71"},
+]
+
+[package.dependencies]
+fastjsonschema = ">=2.16.2,<=3"
+packaging = {version = ">=24.2", optional = true, markers = "extra == \"all\""}
+trove-classifiers = {version = ">=2021.10.20", optional = true, markers = "extra == \"all\""}
+
+[package.extras]
+all = ["packaging (>=24.2)", "tomli (>=1.2.1) ; python_version < \"3.11\"", "trove-classifiers (>=2021.10.20)"]
+store = ["validate-pyproject-schema-store"]
 
 [[package]]
 name = "virtualenv"
@@ -5728,4 +5761,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "f521c08955f190061ec3eb1f14b39ff2f16095a4d93a541bbcc2e7191e6b89e6"
+content-hash = "1628a498c9d1a7e39e5c9463b48ff8063421020c88d8ea9d100bf94870399a11"
