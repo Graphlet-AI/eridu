@@ -26,6 +26,19 @@ classifiers = [
 include = [
     "LICENSE",
 ]
+keywords = [
+    "entity resolution",
+    "fuzzy matching",
+    "representation learning",
+    "deep learning",
+    "machine learning",
+    "graph neural networks",
+    "transformers",
+    "sentence transformers",
+    "pandas",
+    "numpy",
+    "pyspark"
+]
 
 [tool.poetry.scripts]
 eridu = "eridu.cli.main:cli"
