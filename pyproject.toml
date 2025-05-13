@@ -1,11 +1,31 @@
 [tool.poetry]
 name = "eridu"
-version = "0.1.1"
+version = "0.1.2"
 description = "Fuzzy matching people and company names for entity resolution using representation learning"
-authors = ["Russell Jurney <rjurney@graphlet.ai>"]
+authors = ["Russell Jurney <rjurney@graphlet.ai>", "Russell Jurney <russell.jurney@gmail.com>"]
 license = "Apache 2.0"
 readme = "README.md"
 package-mode = true
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Database :: Database Engines/Servers",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+include = [
+    "LICENSE",
+]
 
 [tool.poetry.scripts]
 eridu = "eridu.cli.main:cli"
@@ -17,7 +37,7 @@ priority = "explicit"
 
 [project]
 name = "eridu"
-version = "0.1.0"
+version = "0.1.2"
 
 [tool.poetry.urls]
 "Blog Post" = "Unwritten"
