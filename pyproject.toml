@@ -1,10 +1,12 @@
 [tool.poetry]
 name = "eridu"
 version = "0.1.2"
-description = "Fuzzy matching people and company names for entity resolution using representation learning"
+description = "Deep fuzzy matching people and company names for multilingual entity resolution using representation learning"
 authors = ["Russell Jurney <rjurney@graphlet.ai>", "Russell Jurney <russell.jurney@gmail.com>"]
 license = "Apache 2.0"
 readme = "README.md"
+repository = "https://github.com/Graphlet-AI/eridu"
+homepage = "https://github.com/Graphlet-AI/eridu"
 package-mode = true
 classifiers = [
     "Development Status :: 4 - Beta",
