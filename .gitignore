@@ -4,3 +4,4 @@ data
 nohup.out
 *.pyc
 wandb
+dist
