@@ -2,12 +2,24 @@
 name = "eridu"
 version = "0.1.2"
 description = "Deep fuzzy matching people and company names for multilingual entity resolution using representation learning"
-authors = ["Russell Jurney <rjurney@graphlet.ai>", "Russell Jurney <russell.jurney@gmail.com>"]
+authors = ["Russell Jurney, Graphlet AI, <rjurney@graphlet.ai>", "Russell Jurney <russell.jurney@gmail.com>"]
 license = "Apache 2.0"
 readme = "README.md"
 repository = "https://github.com/Graphlet-AI/eridu"
 homepage = "https://github.com/Graphlet-AI/eridu"
-package-mode = true
+keywords = [
+    "entity resolution",
+    "fuzzy matching",
+    "representation learning",
+    "deep learning",
+    "machine learning",
+    "graph neural networks",
+    "transformers",
+    "sentence transformers",
+    "pandas",
+    "numpy",
+    "pyspark"
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -26,21 +38,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 include = [
-    "LICENSE",
+    "LICENSE"
 ]
-keywords = [
-    "entity resolution",
-    "fuzzy matching",
-    "representation learning",
-    "deep learning",
-    "machine learning",
-    "graph neural networks",
-    "transformers",
-    "sentence transformers",
-    "pandas",
-    "numpy",
-    "pyspark"
-]
+package-mode = true
 
 [tool.poetry.scripts]
 eridu = "eridu.cli.main:cli"
@@ -92,6 +92,7 @@ jupyter-black = "^0.4.0"
 pyarrow-stubs = "^19.1"
 types-seaborn = "^0.13.2.20250111"
 scipy-stubs = "^1.15.2.2"
+validate-pyproject = {extras = ["all"], version = "^0.24.1"}
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]
@@ -101,7 +102,6 @@ build-backend = "poetry.core.masonry.api"
 line-length = 100
 target-version = ["py312"]
 include = '\.py$'
-src = "."
 
 [tool.isort]
 profile = "black"
