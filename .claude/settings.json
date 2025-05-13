@@ -4,6 +4,7 @@
             "Bash(git status:*)",
             "Bash(git diff:*)",
             "Bash(git log:*)",
+            "Bash(git add:*)",
             "Bash(poetry update:*)",
             "Bash(pip show:*)",
             "Bash(pip freeze:*)",
