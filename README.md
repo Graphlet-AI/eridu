@@ -119,4 +119,4 @@ This project is licensed under the [Apache 2.0 License](LICENSE). See the [LICEN
 
 ## Acknowledgements
 
-This work is made possible by the [Open Sanctions Matcher training data](https://www.opensanctions.org/docs/pairs/) and the [HuggingFace](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) community.
+This work is made possible by the [Open Sanctions Matcher training data](https://www.opensanctions.org/docs/pairs/), the [Sentence Transformers Project](https://sbert.net/) and the [HuggingFace](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) community.
