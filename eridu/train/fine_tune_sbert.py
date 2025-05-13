@@ -24,12 +24,16 @@ from sentence_transformers.evaluation import BinaryClassificationEvaluator
 from sentence_transformers.model_card import SentenceTransformerModelCardData
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sklearn.metrics import (  # type: ignore
+    accuracy_score,
     f1_score,
     precision_recall_curve,
+    precision_score,
+    recall_score,
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split  # type: ignore
 from transformers import EarlyStoppingCallback
+from transformers.integrations import WandbCallback
 
 import wandb
 from eridu.train.utils import compute_classifier_metrics  # noqa: F401
@@ -83,6 +87,35 @@ LEARNING_RATE: float = float(os.environ.get("LEARNING_RATE", "5e-5"))
 SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
 SAVE_EVAL_STEPS: int = int(os.environ.get("SAVE_EVAL_STEPS", "100"))
 USE_FP16: bool = os.environ.get("USE_FP16", "True").lower() == "true"
+
+# Get Weights & Biases configuration from environment variables
+WANDB_PROJECT: str = os.environ.get("WANDB_PROJECT", "eridu")
+WANDB_ENTITY: str = os.environ.get("WANDB_ENTITY", "rjurney")
+WANDB_LOG_MODEL: bool = os.environ.get("WANDB_LOG_MODEL", "false").lower() == "true"
+
+# Initialize Weights & Biases
+wandb.init(
+    entity=WANDB_ENTITY,
+    # set the wandb project where this run will be logged
+    project=WANDB_PROJECT,
+    # track hyperparameters and run metadata
+    config={
+        "variant": VARIANT,
+        "optimizer": OPTIMIZER,
+        "epochs": EPOCHS,
+        "sample_fraction": SAMPLE_FRACTION,
+        "gradient_accumulation_steps": GRADIENT_ACCUMULATION_STEPS,
+        "use_fp16": USE_FP16,
+        "batch_size": BATCH_SIZE,
+        "patience": PATIENCE,
+        "learning_rate": LEARNING_RATE,
+        "sbert_model": SBERT_MODEL,
+        "model_save_name": MODEL_SAVE_NAME,
+        "sbert_output_folder": SBERT_OUTPUT_FOLDER,
+        "save_eval_steps": SAVE_EVAL_STEPS,
+    },
+    save_code=True,
+)
 
 #
 # Check for CUDA or MPS availability and set the device
@@ -210,7 +243,7 @@ print(str(examples_df) + "\n")
 # Evaluate a sample of the evaluation data compared using raw SBERT before fine-tuning
 #
 
-sample_df: pd.DataFrame = eval_df.sample(n=10000, random_state=RANDOM_SEED)
+sample_df: pd.DataFrame = eval_df.sample(frac=SAMPLE_FRACTION, random_state=RANDOM_SEED)
 result_df: pd.DataFrame = sbert_compare_multiple_df(
     sbert_model, sample_df["left_name"], sample_df["right_name"], sample_df["match"]
 )
@@ -228,6 +261,15 @@ stats_df: pd.DataFrame = pd.DataFrame(  # retain and append fine-tuned SBERT sta
 print("\nRaw SBERT model stats:")
 print(str(stats_df) + "\n")
 
+# Log initial model metrics to W&B
+wandb.log(
+    {
+        "raw_model/error_mean": error_s.mean(),
+        "raw_model/error_std": error_s.std(),
+        "raw_model/error_iqr": iqr(error_s),
+    }
+)
+
 # Make a Dataset from the sample data
 sample_dataset: Dataset = Dataset.from_dict(
     {
@@ -238,20 +280,35 @@ sample_dataset: Dataset = Dataset.from_dict(
 )
 
 # Ensure evaluation directory exists
-os.makedirs(
-    f"{SBERT_OUTPUT_FOLDER}/eval/binary_classification_evaluation_{SBERT_MODEL.replace('/', '-')}",
-    exist_ok=True,
+eval_dir = (
+    f"{SBERT_OUTPUT_FOLDER}/eval/binary_classification_evaluation_{SBERT_MODEL.replace('/', '-')}"
 )
+os.makedirs(eval_dir, exist_ok=True)
+
+# Set the name property of the evaluator to the sanitized model name
+evaluation_name = SBERT_MODEL.replace("/", "-")
 
 # Use an evaluator to get trustworthy metrics for the match classification
 binary_acc_evaluator: BinaryClassificationEvaluator = BinaryClassificationEvaluator(
     sentences1=sample_dataset["sentence1"],
     sentences2=sample_dataset["sentence2"],
     labels=sample_dataset["label"],  # Already converted to float above
-    name=SBERT_MODEL,
+    name=evaluation_name,
 )
-binary_acc_df: pd.DataFrame = pd.DataFrame([binary_acc_evaluator(sbert_model)])
+binary_acc_results = binary_acc_evaluator(sbert_model)
+binary_acc_df: pd.DataFrame = pd.DataFrame([binary_acc_results])
 print(str(binary_acc_df) + "\n")
+
+# Log binary classification evaluation metrics to W&B
+wandb.log(
+    {
+        "raw_model/binary_accuracy": binary_acc_results.get("accuracy", 0.0),
+        "raw_model/binary_f1": binary_acc_results.get("f1", 0.0),
+        "raw_model/binary_precision": binary_acc_results.get("precision", 0.0),
+        "raw_model/binary_recall": binary_acc_results.get("recall", 0.0),
+        "raw_model/binary_ap": binary_acc_results.get("ap", 0.0),
+    }
+)
 
 #
 # Fine-tune the SBERT model using contrastive loss
@@ -294,7 +351,7 @@ trainer: SentenceTransformerTrainer = SentenceTransformerTrainer(
     loss=loss,
     evaluator=binary_acc_evaluator,
     compute_metrics=compute_sbert_metrics,  # type: ignore
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=PATIENCE)],
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=PATIENCE), WandbCallback()],
 )
 
 # This will take a while - if you're using CPU you need to sample the training dataset down a lot
@@ -379,6 +436,21 @@ plt.xlabel("Recall")
 plt.ylabel("Precision")
 plt.title("Augmented Test Set Precision-Recall Curve")
 plt.savefig("images/precision_recall_curve.png")
+
+# Log final metrics to W&B
+wandb.log(
+    {
+        "final/best_threshold": best_threshold,
+        "final/best_f1_score": best_f1_score,
+        "final/accuracy": accuracy_score(y_true, y_scores >= best_threshold),
+        "final/precision": precision_score(y_true, y_scores >= best_threshold),
+        "final/recall": recall_score(y_true, y_scores >= best_threshold),
+        "final/auc": roc_auc,
+    }
+)
+
+# Log the precision-recall curve to W&B
+wandb.log({"final/pr_curve": wandb.plot.pr_curve(y_true, y_scores, labels=["match"])})
 
 
 def main() -> None:

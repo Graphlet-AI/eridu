@@ -35,19 +35,52 @@ def cli() -> None:
 @click.option(
     "--fp16/--no-fp16", default=True, show_default=True, help="Use mixed precision training (fp16)"
 )
-def train(model: str, sample_fraction: float, batch_size: int, epochs: int, fp16: bool) -> None:
+@click.option(
+    "--wandb-project",
+    default="eridu",
+    show_default=True,
+    help="Weights & Biases project name for tracking",
+)
+@click.option(
+    "--wandb-entity",
+    default="rjurney",
+    show_default=True,
+    help="Weights & Biases entity (username or team name)",
+)
+@click.option(
+    "--wandb-log-model/--no-wandb-log-model",
+    default=False,
+    show_default=True,
+    help="Whether to upload model checkpoints to W&B",
+)
+def train(
+    model: str,
+    sample_fraction: float,
+    batch_size: int,
+    epochs: int,
+    fp16: bool,
+    wandb_project: str,
+    wandb_entity: str,
+    wandb_log_model: bool,
+) -> None:
     """Fine-tune a sentence transformer (SBERT) model for entity matching."""
     click.echo(f"Fine-tuning SBERT model: {model}")
     click.echo(f"Sample fraction: {sample_fraction}")
     click.echo(f"Batch size: {batch_size}")
     click.echo(f"Epochs: {epochs}")
     click.echo(f"FP16: {fp16}")
+    click.echo(f"W&B Project: {wandb_project}")
+    click.echo(f"W&B Entity: {wandb_entity}")
+    click.echo(f"Log model to W&B: {wandb_log_model}")
 
     # Set environment variables based on CLI options
     os.environ["SBERT_MODEL"] = model
     os.environ["SAMPLE_FRACTION"] = str(sample_fraction)
     os.environ["BATCH_SIZE"] = str(batch_size)
     os.environ["EPOCHS"] = str(epochs)
+    os.environ["WANDB_PROJECT"] = wandb_project
+    os.environ["WANDB_ENTITY"] = wandb_entity
+    os.environ["WANDB_LOG_MODEL"] = "true" if wandb_log_model else "false"
 
     # Disable fp16 if requested (important to fix the Half tensor error)
     if not fp16:

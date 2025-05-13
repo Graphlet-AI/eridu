@@ -28,11 +28,32 @@ logger = logging.getLogger(__name__)
 
 
 def compute_sbert_metrics(eval_pred: Tuple[List, List]) -> Dict[str, Number]:
-    """compute_metrics - Compute accuracy, precision, recall, f1 and roc_auc"""
+    """compute_metrics - Compute accuracy, precision, recall, f1 and roc_auc
+
+    This function is called during model evaluation and logs metrics to W&B automatically
+    through the WandbCallback.
+    """
     predictions, labels = eval_pred
-    metrics = {}
-    for metric in accuracy_score, precision_score, recall_score, f1_score, roc_auc_score:
-        metrics[metric.__name__] = metric(labels, predictions)
+
+    # Apply threshold to predictions (0.5 is default)
+    if isinstance(predictions[0], float):
+        # If predictions are similarity scores (between 0 and 1)
+        binary_preds = [1 if pred >= 0.5 else 0 for pred in predictions]
+    else:
+        # If predictions are already binary
+        binary_preds = predictions
+
+    # Calculate metrics
+    metrics = {
+        "accuracy": accuracy_score(labels, binary_preds),
+        "precision": precision_score(labels, binary_preds, zero_division=0),
+        "recall": recall_score(labels, binary_preds, zero_division=0),
+        "f1": f1_score(labels, binary_preds, zero_division=0),
+    }
+
+    # Calculate AUC only if predictions are continuous (not binary)
+    if isinstance(predictions[0], float):
+        metrics["auc"] = roc_auc_score(labels, predictions)
 
     return metrics
 
