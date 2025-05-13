@@ -131,7 +131,7 @@ def etl_report(parquet_path: str, truncate: int) -> None:
     help="Directory to save the downloaded and extracted files",
 )
 def download(url: str, output_dir: str) -> None:
-    """Download and convert the labeled entity pairsa CSV file to Parquet format."""
+    """Download and convert the labeled entity pairs CSV file to Parquet format."""
     output_dir_path = Path(output_dir)
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
