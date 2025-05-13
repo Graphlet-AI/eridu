@@ -237,7 +237,13 @@ sample_dataset: Dataset = Dataset.from_dict(
     }
 )
 
-# Use ab evaluator to get trustworthy metrics for the match classification
+# Ensure evaluation directory exists
+os.makedirs(
+    f"{SBERT_OUTPUT_FOLDER}/eval/binary_classification_evaluation_{SBERT_MODEL.replace('/', '-')}",
+    exist_ok=True,
+)
+
+# Use an evaluator to get trustworthy metrics for the match classification
 binary_acc_evaluator: BinaryClassificationEvaluator = BinaryClassificationEvaluator(
     sentences1=sample_dataset["sentence1"],
     sentences2=sample_dataset["sentence2"],
