@@ -32,7 +32,8 @@
             "Bash(poetry install:*)",
             "Bash(poetry update:*)",
             "Bash(touch *__init__.py)",
-            "Bash(grep:*)"
+            "Bash(grep:*)",
+            "Bash(grep -n:*)"
         ],
         "deny": [
             "Bash(pip install:*)"
