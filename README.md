@@ -22,6 +22,8 @@ First go through <a href="#project-setup">Project Setup</a>, then run the CLI: <
 
 The interface to this work is a command-line (CLI) utility `eridu` that trains a model and a utility that compares a pair of names using our fine-tuned embedding and a metric called cosine similarity that incorporates a deep understanding of people and company names and works _much better_ than string distance methods. This works across languages and charactersets  The distance returned is a number between 0 and 1, where 0 means the names are identical and 1 means they are completely different. The CLI utility is called `eridu` and it has three subcommands: `download`, `train` and `compare`. More will be added in the near future, so check the documentation for updates: `eridu --help`.
 
+Note: this project can be cost-effectively scaled with GPU acceleration comparing many name pairs at once - the `eridu compare` command is slow because it loads the models. This is not indicative of the model's performance or scalability properties.
+
 This project has a `eridu` CLI to run everything. It self describes.
 
 ```bash
@@ -198,8 +200,8 @@ eridu etl report --parquet-path data/pairs-all.parquet
 # Login to your Weights and Biases account
 wandb login
 
-# I needed to increase the batch size to utilize A100 GPUs
-eridu train --use-gpu --batch-size 8192 --epochs 10 --sample-fraction 0.1
+# I needed to increase the batch size to utilize A100 GPUs' 40GB GPU RAM
+eridu train --use-gpu --batch-size 5376 --epochs 10 --sample-fraction 0.1
 ```
 
 ## License
