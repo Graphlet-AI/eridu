@@ -133,6 +133,20 @@ curl -sSL https://install.python-poetry.org | python3 -
 poetry install
 ```
 
+### Optional: Weights and Biases for Experiment Tracking
+
+This project uses [Weights and Biases](https://wandb.ai/) for experiment tracking. If you want to use this feature, you need to log in to your Weights and Biases account. You can do this by running the following command:
+
+```bash
+wandb login
+```
+
+Then you need to set the `--wandb-project` and --wandb-entity`options in the`eridu train` CLI.
+
+```bash
+eridu train --wandb-project "<my_project>" --wandb-entity "<my_entity>"
+```
+
 ## Contributing
 
 We welcome contributions to this project! Please follow the guidelines below:
