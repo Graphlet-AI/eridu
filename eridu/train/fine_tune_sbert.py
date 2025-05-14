@@ -197,7 +197,7 @@ sbert_model: SentenceTransformer = SentenceTransformer(
     model_card_data=SentenceTransformerModelCardData(
         language="en",
         license="apache-2.0",
-        model_name=f"{SBERT_MODEL}-address-matcher-{VARIANT}",
+        model_name=f"{SBERT_MODEL}-name-matcher-{VARIANT}",
     ),
 )
 # Enable gradient checkpointing to save memory
