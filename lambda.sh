@@ -8,7 +8,7 @@
 export LAMBDA_IP="<IP>"
 
 # Which region FS are we using?
-export LAMBDA_REGION_FS="default-us-east-3"
+export LAMBDA_REGION_FS="default-us-south-1"
 
 # Lambda Labs SSH key
 export LAMBDA_LABS_KEY="lambda-labs-ssh-key.pem"
@@ -26,7 +26,10 @@ scp -i ~/.ssh/${LAMBDA_LABS_KEY} ~/.ssh/id_lambda_github* ubuntu@${LAMBDA_IP}:.s
 ssh -i ~/.ssh/lambda-labs-ssh-key.pem ubuntu@${LAMBDA_IP}
 
 # Do everything on the persistent filesystem
-cd ${LAMBDA_REGION_FS}
+cd ${HOME}/${LAMBDA_REGION_FS}
+
+# Update apt
+sudo apt update -y
 
 
 #
@@ -38,13 +41,15 @@ chmod +x Miniconda3-latest-Linux-x86_64.sh
 export MINICONDA_HOME="${HOME}/${LAMBDA_REGION_FS}/miniconda3"
 ./Miniconda3-latest-Linux-x86_64.sh -b -p "${MINICONDA_HOME}"
 
-export PATH="$HOME/$LAMBDA_REGION_FS/miniconda3/bin:$PATH"
+export PATH="${MINICONDA_HOME}/bin:${PATH}"
 conda init bash
 source ~/.bashrc
 
+# Create the project's environment
 conda create -n eridu python=3.12 -y
 conda activate eridu
 
+# Install poetry and disable virtualenvs - we have conda
 pipx install poetry
 poetry config virtualenvs.create false
 
@@ -55,15 +60,16 @@ poetry config virtualenvs.create false
 cat >> ~/.ssh/config <<'EOF'
 Host github.com
   AddKeysToAgent yes
+  StrictHostKeyChecking no
   IdentityFile ~/.ssh/id_lambda_github
 EOF
-eval "$(ssh-agent -p)"
+eval "$(ssh-agent -s)"
 
 # Install Java for PySpark ETL
 sudo apt install openjdk-11-jre-headless -y
 
-# Project specific stuff
-cd $HOME/$LAMBDA_REGION_FS
+# Clone the project repository and install its dependencies
+cd ${HOME}/${LAMBDA_REGION_FS}
 git clone git@github.com:Graphlet-AI/eridu.git
 cd eridu
 poetry install
