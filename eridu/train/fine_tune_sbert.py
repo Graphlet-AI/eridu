@@ -91,7 +91,6 @@ USE_FP16: bool = os.environ.get("USE_FP16", "True").lower() == "true"
 # Get Weights & Biases configuration from environment variables
 WANDB_PROJECT: str = os.environ.get("WANDB_PROJECT", "eridu")
 WANDB_ENTITY: str = os.environ.get("WANDB_ENTITY", "rjurney")
-WANDB_LOG_MODEL: bool = os.environ.get("WANDB_LOG_MODEL", "false").lower() == "true"
 
 # Initialize Weights & Biases
 wandb.init(
