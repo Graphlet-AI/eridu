@@ -148,6 +148,46 @@ pre-commit install
 
 This project was written by Russell Jurney with the help of [Claude Code](https://claude.ai/code), a large language model (LLM) from Anthropic. This is made possible by the permissions in [.claude/settings.json](.claude/settings.json) and configuration in [CLAUDE.md](CLAUDE.md). You will want to 'fine-tune' them both to your requirements. Please be sure to double check that you are comfortable with the permissions in `.claude/settings.json` before using this project, as there are security considations. I gave it the ability to perform read-only tasks without my intervention, but some minor write operations are enabled (like `touch`, `git add`, etc.) but not `git commit`.
 
+## Pre-Trained Model vs Fine-Tuned Model
+
+The pre-trained model is the [paraphrase-multilingual-MiniLM-L12-v2](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) model from HuggingFace.
+
+```csv
+           sentence1         sentence2  similarity
+0         John Smith        John Smith    1.000000
+1         John Smith     John H. Smith    0.953342
+2  Yevgeny Prigozhin  Евгений Пригожин    0.744036
+3         Ben Lorica               罗瑞卡    0.764319
+```
+
+The fine-tuned model is the same model, but trained on 2 million labeled pairs of person and company names from the [Open Sanctions Matcher training data](https://www.opensanctions.org/docs/pairs/). The fine-tuned model is much better at matching names than the pre-trained model.
+
+```csv
+
+```
+
+Note that a full performance analysis is underway...
+
+## Production Run Configuration
+
+The production run was done on a Lambda Labs A100 `gpu_1x_a100` with 40GB GPU RAM. The process is described in the script [lambda.sh](lambda.sh), which is not yet fully automated. I monitored the process using `nvidia-smi -l 1` to verify GPU utilization (bursty 100% CPU).
+
+The commands used to train are:
+
+```bash
+# These are the default arguments...
+eridu download --url "https://storage.googleapis.com/data.opensanctions.org/contrib/sample/pairs-all.csv.gz" --output-dir data
+
+# These are the default arguments...
+eridu etl report --parquet-path data/pairs-all.parquet
+
+# Login to your Weights and Biases account
+wandb login
+
+# I needed to increase the batch size to utilize A100 GPUs
+eridu train --use-gpu --batch-size 8192 --epochs 10 --sample-fraction 0.1
+```
+
 ## License
 
 This project is licensed under the [Apache 2.0 License](LICENSE). See the [LICENSE](LICENSE) file for details.
