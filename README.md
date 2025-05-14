@@ -201,7 +201,7 @@ eridu etl report --parquet-path data/pairs-all.parquet
 wandb login
 
 # I needed to increase the batch size to utilize A100 GPUs' 40GB GPU RAM
-eridu train --use-gpu --batch-size 5376 --epochs 10 --sample-fraction 0.1
+eridu train --use-gpu --batch-size 5000 --epochs 10 --sample-fraction 0.1
 ```
 
 ## License
