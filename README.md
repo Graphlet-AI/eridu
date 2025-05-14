@@ -2,7 +2,7 @@
 
 Deep fuzzy matching people and company names for multilingual entity resolution using representation learning... that incorporates a deep understanding of people and company names and works _much better_ than string distance methods.
 
-<center><img src="https://rjurneyopen.s3.amazonaws.com/Ancient-Eridu-Tell-Abu-Shahrain.jpg" alt="Google Maps overhead view of Tell Abu Shahrein - Ancient Eridu" /></center>
+<center><img src="https://rjurneyopen.s3.amazonaws.com/Ancient-Eridu-Tell-Abu-Shahrain.jpg" width="600px" alt="Google Maps overhead view of Tell Abu Shahrein - Ancient Eridu" /></center>
 
 ## About Ancient Eridu
 
@@ -179,7 +179,11 @@ The pre-trained model is the [paraphrase-multilingual-MiniLM-L12-v2](https://hug
 The fine-tuned model is the same model, but trained on 2 million labeled pairs of person and company names from the [Open Sanctions Matcher training data](https://www.opensanctions.org/docs/pairs/). The fine-tuned model is much better at matching names than the pre-trained model.
 
 ```csv
-
+           sentence1         sentence2  similarity
+0         John Smith        John Smith    1.000000
+1         John Smith     John H. Smith    0.960119
+2  Yevgeny Prigozhin  Евгений Пригожин    0.997346
+3         Ben Lorica               罗瑞卡    0.968592
 ```
 
 Note that a full performance analysis is underway...
