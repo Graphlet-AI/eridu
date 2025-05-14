@@ -2,9 +2,7 @@
 
 Deep fuzzy matching people and company names for multilingual entity resolution using representation learning... that incorporates a deep understanding of people and company names and works _much better_ than string distance methods.
 
-<br />
-
-<center><img src="images/Ancient-Eridu-Tell-Abu-Shahrain.jpg" alt="Google Maps overhead view of Tell Abu Shahrein - Ancient Eridu" /></center>
+<center><img src="https://rjurneyopen.s3.amazonaws.com/Ancient-Eridu-Tell-Abu-Shahrain.jpg" alt="Google Maps overhead view of Tell Abu Shahrein - Ancient Eridu" /></center>
 
 ## About Ancient Eridu
 
