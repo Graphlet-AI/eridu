@@ -14,18 +14,6 @@ This project is a deep fuzzy matching system for entity resolution using represe
 
 Matching people and company names is an intractable problem using traditional parsing based methods: there is too much variation across cultures and jurisdictions to solve the problem by humans programming. Machine learning is used in problems like this one of cultural relevance, where programming a solution approaches infinite complexity, to automatically write a program. Since 2008 there has been an explosion of deep learning methods that automate feature engineering via representation learning methods including such as text embeddings. This project loads the pre-trained [paraphrase-multilingual-MiniLM-L12-v2](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) paraphrase model from HuggingFace and fine-tunes it for the name matching task using contrastive learning on more than 2 million labeled pairs of matching and non-matching (just as important) person and company names from the [Open Sanctions Matcher training data](https://www.opensanctions.org/docs/pairs/) to create a deep fuzzy matching system for entity resolution.
 
-## GPU Acceleration
-
-This project supports GPU acceleration for both training and inference. If available, it will automatically use:
-- NVIDIA GPUs via CUDA
-- Apple Silicon GPUs via Metal Performance Shaders (MPS)
-
-You can control GPU usage with command-line flags:
-- For training: `eridu train --use-gpu` or `eridu train --no-gpu`
-- For comparison: `eridu compare "Name One" "Name Two" --use-gpu` or `eridu compare "Name One" "Name Two" --no-gpu`
-
-GPU acceleration significantly improves performance, especially for large datasets and batch inference operations.
-
 ## Getting Started
 
 First go through <a href="#project-setup">Project Setup</a>, then run the CLI: <a href="#eridu-cli">`eridu --help`</a>
@@ -79,7 +67,21 @@ eridu compare "John Smith" "Jon Smith" --model-path /path/to/custom/model
 eridu compare "John Smith" "Jon Smith" --no-gpu
 ```
 
-The output is a number between 0.0 and 1.0, where higher values indicate greater similarity. Scores above 0.8 typically indicate the same entity, while scores below 0.5 typically indicate different entities.
+The output is a number between 0.0 and 1.0, where higher values indicate greater similarity.
+
+### GPU Acceleration
+
+This project supports GPU acceleration for both training and inference. If available, it will automatically use:
+
+- NVIDIA GPUs via CUDA
+- Apple Silicon GPUs via Metal Performance Shaders (MPS)
+
+You can control GPU usage with command-line flags:
+
+- For training: `eridu train --use-gpu` or `eridu train --no-gpu`
+- For comparison: `eridu compare "Name One" "Name Two" --use-gpu` or `eridu compare "Name One" "Name Two" --no-gpu`
+
+GPU acceleration significantly improves performance, especially for large datasets and batch inference operations.
 
 ## Project Setup
 
