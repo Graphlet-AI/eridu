@@ -34,7 +34,8 @@
             "Bash(touch *__init__.py)",
             "Bash(grep:*)",
             "Bash(grep -n:*)",
-            "Bash(echo -ne '\007')"
+            "Bash(echo -ne '\007')",
+            "Write(file_path:*/__init__.py)"
         ],
         "deny": [
             "Bash(pip install:*)"
