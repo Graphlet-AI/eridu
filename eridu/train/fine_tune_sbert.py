@@ -118,19 +118,26 @@ wandb.init(
 )
 
 #
-# Check for CUDA or MPS availability and set the device
+# Check for CUDA or MPS availability and set the device based on USE_GPU env var
 #
 
+# Check if GPU should be used
+USE_GPU: bool = os.environ.get("USE_GPU", "True").lower() == "true"
+
 device: torch.device | str
-if torch.backends.mps.is_available():
-    device = torch.device("mps")
-    logger.debug("Using Apple GPU acceleration")
-elif torch.cuda.is_available():
-    device = torch.device("cuda")
-    logger.debug("Using NVIDIA CUDA GPU acceleration")
+if USE_GPU:
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+        logger.debug("Using Apple GPU acceleration")
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
+        logger.debug("Using NVIDIA CUDA GPU acceleration")
+    else:
+        device = "cpu"
+        logger.debug("No GPU available, falling back to CPU")
 else:
     device = "cpu"
-    logger.debug("Using CPU for ML")
+    logger.debug("GPU disabled by user, using CPU for ML")
 
 print(f"Device for fine-tuning SBERT: {device}")
 
@@ -504,6 +511,7 @@ def main() -> None:
     print(f"  Batch size: {BATCH_SIZE}")
     print(f"  Epochs: {EPOCHS}")
     print(f"  FP16: {USE_FP16}")
+    print(f"  GPU enabled: {USE_GPU}")
     print(f"  Device: {device}")
     print(f"  Output folder: {SBERT_OUTPUT_FOLDER}")
 
