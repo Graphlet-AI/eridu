@@ -2,17 +2,42 @@
 
 Deep fuzzy matching people and company names for multilingual entity resolution using representation learning... that incorporates a deep understanding of people and company names and works _much better_ than string distance methods.
 
-<center><img src="https://rjurneyopen.s3.amazonaws.com/Ancient-Eridu-Tell-Abu-Shahrain.jpg" width="500px" alt="Google Maps overhead view of Tell Abu Shahrein - Ancient Eridu" /></center>
+# TLDR: 5 Lines of Code
 
-## About Ancient Eridu
+```python
+from sentence_transformers import SentenceTransformer
 
-Ancient [Eridu](https://en.wikipedia.org/wiki/Eridu) (modern [Tell Abu Shahrain in Southern Iraq](https://maps.app.goo.gl/xXACdHh1Ppmx7NAf6)) was the world's first city, by Sumerian tradition, with a history spanning 7,000 years. It was the first place where "kingship descended from heaven" to lead farmers to build and operate the first complex irrigation network that enabled intensive agriculture sufficient to support the first true urban population.
+# Download from the 🤗 Hub
+model = SentenceTransformer("Graphlet-AI/eridu")
+
+names = [
+    "Russell Jurney",
+    "Russ Jurney",
+    "Русс Джерни",
+]
+
+embeddings = model.encode(names)
+print(embeddings.shape)
+# [3, 384]
+
+# Get the similarity scores for the embeddings
+similarities = model.similarity(embeddings, embeddings)
+print(similarities.shape)
+# [3, 3]
+
+print(similarities.numpy())
+# [[0.9999999  0.99406826 0.99406105]
+#  [0.9940683  1.         0.9969202 ]
+#  [0.99406105 0.9969202  1.        ]]
+```
 
 ## Project Overview
 
 This project is a deep fuzzy matching system for entity resolution using representation learning. It is designed to match people and company names across languages and character sets, using a pre-trained text embedding model from HuggingFace that we fine-tune using contrastive learning on 2 million labeled pairs of person and company names from the [Open Sanctions Matcher training data](https://www.opensanctions.org/docs/pairs/). The project includes a command-line interface (CLI) utility for training the model and comparing pairs of names using cosine similarity.
 
 Matching people and company names is an intractable problem using traditional parsing based methods: there is too much variation across cultures and jurisdictions to solve the problem by humans programming. Machine learning is used in problems like this one of cultural relevance, where programming a solution approaches infinite complexity, to automatically write a program. Since 2008 there has been an explosion of deep learning methods that automate feature engineering via representation learning methods including such as text embeddings. This project loads the pre-trained [paraphrase-multilingual-MiniLM-L12-v2](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) paraphrase model from HuggingFace and fine-tunes it for the name matching task using contrastive learning on more than 2 million labeled pairs of matching and non-matching (just as important) person and company names from the [Open Sanctions Matcher training data](https://www.opensanctions.org/docs/pairs/) to create a deep fuzzy matching system for entity resolution.
+
+This model is available on HuggingFace Hub as [Graphlet-AI/eridu](https://huggingface.co/Graphlet-AI/eridu) and can be used in any Python project using the [Sentence Transformers](https://sbert.net/) library. The model is designed to be used for entity resolution tasks, such as matching people and company names across different languages and character sets.
 
 ## Getting Started
 
@@ -217,3 +242,9 @@ This project is licensed under the [Apache 2.0 License](LICENSE). See the [LICEN
 ## Acknowledgements
 
 This work is made possible by the [Open Sanctions Matcher training data](https://www.opensanctions.org/docs/pairs/), the [Sentence Transformers Project](https://sbert.net/) and the [HuggingFace](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) community.
+
+## About Ancient Eridu
+
+<center><img src="https://rjurneyopen.s3.amazonaws.com/Ancient-Eridu-Tell-Abu-Shahrain.jpg" width="500px" alt="Google Maps overhead view of Tell Abu Shahrein - Ancient Eridu" /></center>
+
+Ancient [Eridu](https://en.wikipedia.org/wiki/Eridu) (modern [Tell Abu Shahrain in Southern Iraq](https://maps.app.goo.gl/xXACdHh1Ppmx7NAf6)) was the world's first city, by Sumerian tradition, with a history spanning 7,000 years. It was the first place where "kingship descended from heaven" to lead farmers to build and operate the first complex irrigation network that enabled intensive agriculture sufficient to support the first true urban population.
