@@ -2,7 +2,7 @@
 
 Deep fuzzy matching people and company names for multilingual entity resolution using representation learning... that incorporates a deep understanding of people and company names and works _much better_ than string distance methods.
 
-<center><img src="https://rjurneyopen.s3.amazonaws.com/Ancient-Eridu-Tell-Abu-Shahrain.jpg" width="600px" alt="Google Maps overhead view of Tell Abu Shahrein - Ancient Eridu" /></center>
+<center><img src="https://rjurneyopen.s3.amazonaws.com/Ancient-Eridu-Tell-Abu-Shahrain.jpg" width="500px" alt="Google Maps overhead view of Tell Abu Shahrein - Ancient Eridu" /></center>
 
 ## About Ancient Eridu
 
@@ -190,7 +190,9 @@ Note that a full performance analysis is underway...
 
 ## Production Run Configuration
 
-The production run was done on a Lambda Labs A100 `gpu_1x_a100` with 40GB GPU RAM. The process is described in the script [lambda.sh](lambda.sh), which is not yet fully automated. I monitored the process using `nvidia-smi -l 1` to verify GPU utilization (bursty 100% CPU).
+The production run was done on a 10% sample of the data using a Lambda Labs A100 `gpu_1x_a100` with 40GB GPU RAM. The process is described in the script [lambda.sh](lambda.sh), which is not yet fully automated. I monitored the process using `nvidia-smi -l 1` to verify GPU utilization (bursty 100% CPU).
+
+Metrics from the last production training run are up on [Weights and Biases, project Eridu](https://wandb.ai/rjurney/eridu/runs/nn06qw3r?nw=nwuserrjurney).
 
 The commands used to train are:
 
