@@ -190,7 +190,7 @@ Note that a full performance analysis is underway...
 
 ## Production Run Configuration
 
-The production run was done on a 10% sample of the data using a Lambda Labs A100 `gpu_1x_a100` with 40GB GPU RAM. The process is described in the script [lambda.sh](lambda.sh), which is not yet fully automated. I monitored the process using `nvidia-smi -l 1` to verify GPU utilization (bursty 100% CPU).
+The production run was done on a 10% sample of the data using a Lambda Labs A100 `gpu_1x_a100` with 40GB GPU RAM. The process is described in the script [lambda.sh](lambda.sh), which is not yet fully automated. I monitored the process using `nvidia-smi -l 1` to verify GPU utilization (bursty 100% GPU).
 
 Metrics from the last production training run are up on [Weights and Biases, project Eridu](https://wandb.ai/rjurney/eridu/runs/nn06qw3r?nw=nwuserrjurney).
 
