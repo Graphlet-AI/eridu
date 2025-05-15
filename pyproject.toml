@@ -59,6 +59,7 @@ version = "0.1.4"
 "Company" = "https://graphlet.ai"
 "Code Repository" = "https://github.com/Graphlet-AI/eridu"
 "Bug Tracker" = "https://github.com/Graphlet-AI/eridu/issues"
+"HuggingFace Hub" = "https://huggingface.co/Graphlet-AI/eridu"
 
 [tool.poetry.dependencies]
 python = "^3.12"
