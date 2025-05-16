@@ -11,9 +11,10 @@ from sentence_transformers import SentenceTransformer
 model = SentenceTransformer("Graphlet-AI/eridu")
 
 names = [
-    "Russell Jurney",
-    "Russ Jurney",
-    "Русс Джерни",
+    "Frank Lloyd Right",
+    "Jim Jeffries",
+    "Russell H. Jurney",
+    "Русс Джерни"
 ]
 
 embeddings = model.encode(names)
@@ -26,9 +27,10 @@ print(similarities.shape)
 # [3, 3]
 
 print(similarities.numpy())
-# [[0.9999999  0.99406826 0.99406105]
-#  [0.9940683  1.         0.9969202 ]
-#  [0.99406105 0.9969202  1.        ]]
+# [[1.         0.7203882  0.7773637  0.80202234]
+#  [0.7203882  1.0000001  0.7606021  0.829355  ]
+#  [0.7773637  0.7606021  0.99999994 0.81948197]
+#  [0.80202234 0.829355   0.81948197 1.        ]]
 ```
 
 ## Project Overview
@@ -114,6 +116,7 @@ The training process supports multiple epochs with an early stopping mechanism t
 When working with a sample of the dataset (`--sample-fraction` < 1.0), the resampling feature creates a fresh sample for each epoch, allowing the model to see different examples in each training cycle. This is particularly useful when working with very large datasets where using the full dataset is impractical.
 
 Example:
+
 ```bash
 # Train for 20 epochs with dataset resampling on 10% of the data
 eridu train --epochs 20 --patience 5 --resampling --sample-fraction 0.1
@@ -272,7 +275,7 @@ wandb login
 # Using a random seed of 31337 for reproducibility
 # Using warmup ratio of 0.1 for learning rate schedule
 # Using steps-based save and evaluation strategy
-eridu train --use-gpu --batch-size 5000 --epochs 10 --patience 3 --resampling --weight-decay 0.01 --random-seed 31337 --warmup-ratio 0.1 --save-strategy steps --eval-strategy steps --sample-fraction 0.1
+eridu train --use-gpu --batch-size 1100 --epochs 8 --patience 1 --resampling --weight-decay 0.01 --random-seed 31337 --warmup-ratio 0.1 --save-strategy steps --eval-strategy steps --sample-fraction 0.1
 ```
 
 ## License
