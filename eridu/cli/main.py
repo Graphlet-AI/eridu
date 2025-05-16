@@ -130,6 +130,12 @@ def etl_report(parquet_path: str, truncate: int) -> None:
 @click.option("--batch-size", default=1024, show_default=True, help="Batch size for training")
 @click.option("--epochs", default=10, show_default=True, help="Number of training epochs")
 @click.option(
+    "--patience",
+    default=2,
+    show_default=True,
+    help="Early stopping patience (number of evaluation steps without improvement)",
+)
+@click.option(
     "--fp16/--no-fp16", default=False, show_default=True, help="Use mixed precision training (fp16)"
 )
 @click.option(
@@ -167,6 +173,7 @@ def train(
     sample_fraction: float,
     batch_size: int,
     epochs: int,
+    patience: int,
     fp16: bool,
     quantization: bool,
     use_gpu: bool,
@@ -185,6 +192,7 @@ def train(
     click.echo(f"Sample fraction: {sample_fraction}")
     click.echo(f"Batch size: {batch_size}")
     click.echo(f"Epochs: {epochs}")
+    click.echo(f"Early stopping patience: {patience}")
     click.echo(f"FP16: {fp16}")
     click.echo(f"Quantization: {quantization}")
     click.echo(f"Use GPU: {use_gpu}")
@@ -197,6 +205,7 @@ def train(
     os.environ["SAMPLE_FRACTION"] = str(sample_fraction)
     os.environ["BATCH_SIZE"] = str(batch_size)
     os.environ["EPOCHS"] = str(epochs)
+    os.environ["PATIENCE"] = str(patience)
     os.environ["WANDB_PROJECT"] = wandb_project
     os.environ["WANDB_ENTITY"] = wandb_entity
     os.environ["USE_GPU"] = "true" if use_gpu else "false"

@@ -108,6 +108,7 @@ wandb.init(
         "use_fp16": USE_FP16,
         "batch_size": BATCH_SIZE,
         "patience": PATIENCE,
+        "early_stopping_patience": PATIENCE,
         "learning_rate": LEARNING_RATE,
         "sbert_model": SBERT_MODEL,
         "model_save_name": MODEL_SAVE_NAME,
@@ -522,6 +523,7 @@ def main() -> None:
     print(f"  Sample fraction: {SAMPLE_FRACTION}")
     print(f"  Batch size: {BATCH_SIZE}")
     print(f"  Epochs: {EPOCHS}")
+    print(f"  Early stopping patience: {PATIENCE}")
     print(f"  FP16: {USE_FP16}")
     print(f"  Quantization: {USE_QUANTIZATION}")
     print(f"  GPU enabled: {USE_GPU}")
