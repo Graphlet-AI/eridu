@@ -86,7 +86,7 @@ PATIENCE: int = int(os.environ.get("PATIENCE", "2"))
 LEARNING_RATE: float = float(os.environ.get("LEARNING_RATE", "5e-5"))
 SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
 SAVE_EVAL_STEPS: int = int(os.environ.get("SAVE_EVAL_STEPS", "100"))
-USE_FP16: bool = os.environ.get("USE_FP16", "True").lower() == "true"
+USE_FP16: bool = os.environ.get("USE_FP16", "False").lower() == "true"
 
 # Get Weights & Biases configuration from environment variables
 WANDB_PROJECT: str = os.environ.get("WANDB_PROJECT", "eridu")

@@ -130,7 +130,7 @@ def etl_report(parquet_path: str, truncate: int) -> None:
 @click.option("--batch-size", default=1024, show_default=True, help="Batch size for training")
 @click.option("--epochs", default=10, show_default=True, help="Number of training epochs")
 @click.option(
-    "--fp16/--no-fp16", default=True, show_default=True, help="Use mixed precision training (fp16)"
+    "--fp16/--no-fp16", default=False, show_default=True, help="Use mixed precision training (fp16)"
 )
 @click.option(
     "--use-gpu/--no-gpu",
@@ -187,9 +187,8 @@ def train(
     os.environ["WANDB_ENTITY"] = wandb_entity
     os.environ["USE_GPU"] = "true" if use_gpu else "false"
 
-    # Disable fp16 if requested (important to fix the Half tensor error)
-    if not fp16:
-        os.environ["USE_FP16"] = "False"
+    # Set fp16 environment variable (default is False)
+    os.environ["USE_FP16"] = "true" if fp16 else "false"
 
     # Set gradient checkpointing environment variable
     os.environ["USE_GRADIENT_CHECKPOINTING"] = "true" if gradient_checkpointing else "false"
