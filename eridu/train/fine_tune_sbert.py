@@ -5,7 +5,7 @@ import os
 import random
 import sys
 import warnings
-from typing import Any
+from typing import Any, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,10 +32,12 @@ from sklearn.metrics import (  # type: ignore
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split  # type: ignore
-from transformers import EarlyStoppingCallback
+from transformers import EarlyStoppingCallback, TrainerCallback
 from transformers.integrations import WandbCallback
 
 import wandb
+from eridu.train.callbacks import ResamplingCallback
+from eridu.train.dataset import ResamplingDataset
 from eridu.train.utils import compute_classifier_metrics  # noqa: F401
 from eridu.train.utils import (
     compute_sbert_metrics,
@@ -88,6 +90,8 @@ SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
 SAVE_EVAL_STEPS: int = int(os.environ.get("SAVE_EVAL_STEPS", "100"))
 USE_FP16: bool = os.environ.get("USE_FP16", "False").lower() == "true"
 USE_QUANTIZATION: bool = os.environ.get("USE_QUANTIZATION", "False").lower() == "true"
+# Enable resampling of training data for each epoch when sample fraction < 1.0
+USE_RESAMPLING: bool = os.environ.get("USE_RESAMPLING", "True").lower() == "true"
 
 # Get Weights & Biases configuration from environment variables
 WANDB_PROJECT: str = os.environ.get("WANDB_PROJECT", "eridu")
@@ -114,6 +118,7 @@ wandb.init(
         "model_save_name": MODEL_SAVE_NAME,
         "sbert_output_folder": SBERT_OUTPUT_FOLDER,
         "save_eval_steps": SAVE_EVAL_STEPS,
+        "use_resampling": USE_RESAMPLING,
     },
     save_code=True,
 )
@@ -152,10 +157,6 @@ dataset: pd.DataFrame = pd.read_parquet("data/pairs-all.parquet")
 print("\nRaw training data sample:\n")
 print(dataset.sample(n=20).head())
 
-# Optionally sample the dataset
-if SAMPLE_FRACTION < 1.0:
-    dataset = dataset.sample(frac=SAMPLE_FRACTION)
-
 # Split the dataset into training, evaluation, and test sets
 train_df: pd.DataFrame
 tmp_df: pd.DataFrame
@@ -164,19 +165,43 @@ test_df: pd.DataFrame
 train_df, tmp_df = train_test_split(dataset, test_size=0.2, random_state=RANDOM_SEED, shuffle=True)
 eval_df, test_df = train_test_split(tmp_df, test_size=0.5, random_state=RANDOM_SEED, shuffle=True)
 
-print(f"\nTraining data:   {len(train_df):,}")
-print(f"Evaluation data: {len(eval_df):,}")
-print(f"Test data:       {len(eval_df):,}\n")
+print(f"\nTraining data (full):   {len(train_df):,}")
+print(f"Evaluation data:        {len(eval_df):,}")
+print(f"Test data:              {len(test_df):,}\n")
 
-# Convert the training, evaluation, and test sets to HuggingFace Datasets
+# Check if we're using resampling
+if USE_RESAMPLING and SAMPLE_FRACTION < 1.0:
+    print(f"Using resampling with {SAMPLE_FRACTION:.1%} of training data per epoch")
+    # Create a resampling dataset that will give us different samples for each epoch
+    resampling_dataset = ResamplingDataset(
+        train_df, sample_fraction=SAMPLE_FRACTION, random_seed=RANDOM_SEED
+    )
+    # Get the initial sample for the first epoch
+    train_dataset = resampling_dataset.get_current_dataset()
+    sample_size = len(train_dataset)
+    print(
+        f"Initial training sample: {sample_size:,} examples ({SAMPLE_FRACTION:.1%} of full training data)"
+    )
+else:
+    # Without resampling, just sample once if sample_fraction < 1.0
+    if SAMPLE_FRACTION < 1.0:
+        sampled_train_df = train_df.sample(frac=SAMPLE_FRACTION, random_state=RANDOM_SEED)
+        print(f"Training sample: {len(sampled_train_df):,} examples (no resampling)")
+    else:
+        sampled_train_df = train_df
+        print("Using full training dataset (no sampling)")
+
+    # Convert to HuggingFace Dataset
+    train_dataset = Dataset.from_dict(
+        {
+            "sentence1": sampled_train_df["left_name"].tolist(),
+            "sentence2": sampled_train_df["right_name"].tolist(),
+            "label": sampled_train_df["match"].astype(float).tolist(),
+        }
+    )
+
+# Convert the evaluation and test sets to HuggingFace Datasets
 # Use float instead of bool for labels to avoid the subtraction error with boolean tensors
-train_dataset: Dataset = Dataset.from_dict(
-    {
-        "sentence1": train_df["left_name"].tolist(),
-        "sentence2": train_df["right_name"].tolist(),
-        "label": train_df["match"].astype(float).tolist(),
-    }
-)
 eval_dataset: Dataset = Dataset.from_dict(
     {
         "sentence1": eval_df["left_name"].tolist(),
@@ -375,6 +400,17 @@ sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingAr
     optim=OPTIMIZER,
 )
 
+# Prepare the callbacks
+callbacks: List[TrainerCallback] = [
+    EarlyStoppingCallback(early_stopping_patience=PATIENCE),
+    WandbCallback(),
+]
+
+# Add resampling callback if resampling is enabled
+if USE_RESAMPLING and SAMPLE_FRACTION < 1.0:
+    resampling_callback = ResamplingCallback(resampling_dataset, epochs=EPOCHS)
+    callbacks.append(resampling_callback)
+
 trainer: SentenceTransformerTrainer = SentenceTransformerTrainer(
     model=sbert_model,
     args=sbert_args,
@@ -383,7 +419,7 @@ trainer: SentenceTransformerTrainer = SentenceTransformerTrainer(
     loss=loss,
     evaluator=binary_acc_evaluator,
     compute_metrics=compute_sbert_metrics,  # type: ignore
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=PATIENCE), WandbCallback()],
+    callbacks=callbacks,
 )
 
 # This will take a while - if you're using CPU you need to sample the training dataset down a lot
@@ -524,6 +560,10 @@ def main() -> None:
     print(f"  Batch size: {BATCH_SIZE}")
     print(f"  Epochs: {EPOCHS}")
     print(f"  Early stopping patience: {PATIENCE}")
+    if SAMPLE_FRACTION < 1.0:
+        print(f"  Resampling enabled: {USE_RESAMPLING}")
+        if USE_RESAMPLING:
+            print(f"  Training data will be re-sampled ({SAMPLE_FRACTION:.1%}) for each epoch")
     print(f"  FP16: {USE_FP16}")
     print(f"  Quantization: {USE_QUANTIZATION}")
     print(f"  GPU enabled: {USE_GPU}")

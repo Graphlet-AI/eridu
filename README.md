@@ -98,6 +98,25 @@ eridu compare "John Smith" "Jon Smith" --no-gpu
 
 The output is a number between 0.0 and 1.0, where higher values indicate greater similarity.
 
+### Training with Multiple Epochs and Dataset Resampling
+
+The training process supports multiple epochs with an early stopping mechanism to prevent overfitting:
+
+- Use `--epochs` to specify the number of training epochs (default: 10)
+- Use `--patience` to control early stopping patience (default: 2)
+- Use `--resampling/--no-resampling` to enable/disable dataset resampling for each epoch
+
+When working with a sample of the dataset (`--sample-fraction` < 1.0), the resampling feature creates a fresh sample for each epoch, allowing the model to see different examples in each training cycle. This is particularly useful when working with very large datasets where using the full dataset is impractical.
+
+Example:
+```bash
+# Train for 20 epochs with dataset resampling on 10% of the data
+eridu train --epochs 20 --patience 5 --resampling --sample-fraction 0.1
+
+# Train for 15 epochs without resampling on 20% of the data
+eridu train --epochs 15 --no-resampling --sample-fraction 0.2
+```
+
 ### GPU Acceleration
 
 This project supports GPU acceleration for both training and inference. If available, it will automatically use:
@@ -234,7 +253,8 @@ eridu etl report --parquet-path data/pairs-all.parquet
 wandb login
 
 # I needed to increase the batch size to utilize A100 GPUs' 40GB GPU RAM
-eridu train --use-gpu --batch-size 5000 --epochs 10 --sample-fraction 0.1
+# Using 10 epochs with resampling on each epoch (new example pairs in each epoch)
+eridu train --use-gpu --batch-size 5000 --epochs 10 --patience 3 --resampling --sample-fraction 0.1
 ```
 
 ## License

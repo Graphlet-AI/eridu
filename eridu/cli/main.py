@@ -136,6 +136,12 @@ def etl_report(parquet_path: str, truncate: int) -> None:
     help="Early stopping patience (number of evaluation steps without improvement)",
 )
 @click.option(
+    "--resampling/--no-resampling",
+    default=True,
+    show_default=True,
+    help="Resample training data for each epoch when sample_fraction < 1.0",
+)
+@click.option(
     "--fp16/--no-fp16", default=False, show_default=True, help="Use mixed precision training (fp16)"
 )
 @click.option(
@@ -174,6 +180,7 @@ def train(
     batch_size: int,
     epochs: int,
     patience: int,
+    resampling: bool,
     fp16: bool,
     quantization: bool,
     use_gpu: bool,
@@ -193,6 +200,8 @@ def train(
     click.echo(f"Batch size: {batch_size}")
     click.echo(f"Epochs: {epochs}")
     click.echo(f"Early stopping patience: {patience}")
+    if sample_fraction < 1.0:
+        click.echo(f"Resampling per epoch: {resampling}")
     click.echo(f"FP16: {fp16}")
     click.echo(f"Quantization: {quantization}")
     click.echo(f"Use GPU: {use_gpu}")
@@ -206,6 +215,7 @@ def train(
     os.environ["BATCH_SIZE"] = str(batch_size)
     os.environ["EPOCHS"] = str(epochs)
     os.environ["PATIENCE"] = str(patience)
+    os.environ["USE_RESAMPLING"] = "true" if resampling else "false"
     os.environ["WANDB_PROJECT"] = wandb_project
     os.environ["WANDB_ENTITY"] = wandb_entity
     os.environ["USE_GPU"] = "true" if use_gpu else "false"
