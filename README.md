@@ -106,6 +106,10 @@ The training process supports multiple epochs with an early stopping mechanism t
 - Use `--patience` to control early stopping patience (default: 2)
 - Use `--resampling/--no-resampling` to enable/disable dataset resampling for each epoch
 - Use `--weight-decay` to control L2 regularization strength (default: 0.01)
+- Use `--random-seed` to set the random seed for reproducibility (default: 31337)
+- Use `--warmup-ratio` to control the learning rate warmup (default: 0.1)
+- Use `--save-strategy` to control when checkpoints are saved (`steps`, `epoch`, or `no`) (default: `steps`)
+- Use `--eval-strategy` to control when evaluation happens (`steps`, `epoch`, or `no`) (default: `steps`)
 
 When working with a sample of the dataset (`--sample-fraction` < 1.0), the resampling feature creates a fresh sample for each epoch, allowing the model to see different examples in each training cycle. This is particularly useful when working with very large datasets where using the full dataset is impractical.
 
@@ -119,6 +123,12 @@ eridu train --epochs 15 --no-resampling --sample-fraction 0.2
 
 # Train with lower weight decay to reduce regularization (potentially better for similar pairs)
 eridu train --epochs 10 --weight-decay 0.001 --sample-fraction 0.1
+
+# Train with custom random seed and warmup ratio
+eridu train --random-seed 42 --warmup-ratio 0.2 --sample-fraction 0.1
+
+# Train with evaluation at the end of each epoch instead of at steps
+eridu train --save-strategy epoch --eval-strategy epoch --sample-fraction 0.1
 ```
 
 ### GPU Acceleration
@@ -259,7 +269,10 @@ wandb login
 # I needed to increase the batch size to utilize A100 GPUs' 40GB GPU RAM
 # Using 10 epochs with resampling on each epoch (new example pairs in each epoch)
 # Using a weight decay of 0.01 for regularization
-eridu train --use-gpu --batch-size 5000 --epochs 10 --patience 3 --resampling --weight-decay 0.01 --sample-fraction 0.1
+# Using a random seed of 31337 for reproducibility
+# Using warmup ratio of 0.1 for learning rate schedule
+# Using steps-based save and evaluation strategy
+eridu train --use-gpu --batch-size 5000 --epochs 10 --patience 3 --resampling --weight-decay 0.01 --random-seed 31337 --warmup-ratio 0.1 --save-strategy steps --eval-strategy steps --sample-fraction 0.1
 ```
 
 ## License

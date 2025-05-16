@@ -51,7 +51,7 @@ from eridu.train.utils import (
 #
 
 # For reproducibility
-RANDOM_SEED: int = 31337
+RANDOM_SEED: int = int(os.environ.get("RANDOM_SEED", "31337"))
 random.seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
@@ -87,6 +87,9 @@ GRADIENT_ACCUMULATION_STEPS: int = int(os.environ.get("GRADIENT_ACCUMULATION_STE
 PATIENCE: int = int(os.environ.get("PATIENCE", "2"))
 LEARNING_RATE: float = float(os.environ.get("LEARNING_RATE", "5e-5"))
 WEIGHT_DECAY: float = float(os.environ.get("WEIGHT_DECAY", "0.01"))
+WARMUP_RATIO: float = float(os.environ.get("WARMUP_RATIO", "0.1"))
+SAVE_STRATEGY: str = os.environ.get("SAVE_STRATEGY", "steps")
+EVAL_STRATEGY: str = os.environ.get("EVAL_STRATEGY", "steps")
 SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
 SAVE_EVAL_STEPS: int = int(os.environ.get("SAVE_EVAL_STEPS", "100"))
 USE_FP16: bool = os.environ.get("USE_FP16", "False").lower() == "true"
@@ -116,6 +119,10 @@ wandb.init(
         "early_stopping_patience": PATIENCE,
         "learning_rate": LEARNING_RATE,
         "weight_decay": WEIGHT_DECAY,
+        "random_seed": RANDOM_SEED,
+        "warmup_ratio": WARMUP_RATIO,
+        "save_strategy": os.environ.get("SAVE_STRATEGY", "steps"),
+        "eval_strategy": os.environ.get("EVAL_STRATEGY", "steps"),
         "sbert_model": SBERT_MODEL,
         "model_save_name": MODEL_SAVE_NAME,
         "sbert_output_folder": SBERT_OUTPUT_FOLDER,
@@ -384,14 +391,14 @@ sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingAr
     per_device_eval_batch_size=BATCH_SIZE,
     fp16=USE_FP16,
     fp16_opt_level="O1" if USE_FP16 else "O0",
-    warmup_ratio=0.1,
+    warmup_ratio=WARMUP_RATIO,
     run_name=SBERT_MODEL,
     load_best_model_at_end=True,
     save_total_limit=5,
     save_steps=SAVE_EVAL_STEPS,
     eval_steps=SAVE_EVAL_STEPS,
-    save_strategy="steps",
-    eval_strategy="steps",
+    save_strategy=SAVE_STRATEGY,
+    eval_strategy=EVAL_STRATEGY,
     greater_is_better=False,
     metric_for_best_model="eval_loss",
     learning_rate=LEARNING_RATE,
@@ -568,6 +575,10 @@ def main() -> None:
             print(f"  Training data will be re-sampled ({SAMPLE_FRACTION:.1%}) for each epoch")
     print(f"  Learning rate: {LEARNING_RATE}")
     print(f"  Weight decay: {WEIGHT_DECAY}")
+    print(f"  Random seed: {RANDOM_SEED}")
+    print(f"  Warmup ratio: {WARMUP_RATIO}")
+    print(f"  Save strategy: {SAVE_STRATEGY}")
+    print(f"  Eval strategy: {EVAL_STRATEGY}")
     print(f"  FP16: {USE_FP16}")
     print(f"  Quantization: {USE_QUANTIZATION}")
     print(f"  GPU enabled: {USE_GPU}")
