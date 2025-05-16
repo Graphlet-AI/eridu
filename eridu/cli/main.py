@@ -133,6 +133,12 @@ def etl_report(parquet_path: str, truncate: int) -> None:
     "--fp16/--no-fp16", default=False, show_default=True, help="Use mixed precision training (fp16)"
 )
 @click.option(
+    "--quantization/--no-quantization",
+    default=False,
+    show_default=True,
+    help="Apply quantization to Linear layers (reduces precision to save memory)",
+)
+@click.option(
     "--use-gpu/--no-gpu",
     default=True,
     show_default=True,
@@ -162,17 +168,25 @@ def train(
     batch_size: int,
     epochs: int,
     fp16: bool,
+    quantization: bool,
     use_gpu: bool,
     wandb_project: str,
     wandb_entity: str,
     gradient_checkpointing: bool,
 ) -> None:
     """Fine-tune a sentence transformer (SBERT) model for entity matching."""
+    # Validate that FP16 and quantization are not both enabled
+    if fp16 and quantization:
+        raise click.UsageError(
+            "Error: Cannot use both FP16 and quantization together. Please choose only one option."
+        )
+
     click.echo(f"Fine-tuning SBERT model: {model}")
     click.echo(f"Sample fraction: {sample_fraction}")
     click.echo(f"Batch size: {batch_size}")
     click.echo(f"Epochs: {epochs}")
     click.echo(f"FP16: {fp16}")
+    click.echo(f"Quantization: {quantization}")
     click.echo(f"Use GPU: {use_gpu}")
     click.echo(f"Gradient checkpointing: {gradient_checkpointing}")
     click.echo(f"W&B Project: {wandb_project}")
@@ -189,6 +203,9 @@ def train(
 
     # Set fp16 environment variable (default is False)
     os.environ["USE_FP16"] = "true" if fp16 else "false"
+
+    # Set quantization environment variable (default is False)
+    os.environ["USE_QUANTIZATION"] = "true" if quantization else "false"
 
     # Set gradient checkpointing environment variable
     os.environ["USE_GRADIENT_CHECKPOINTING"] = "true" if gradient_checkpointing else "false"

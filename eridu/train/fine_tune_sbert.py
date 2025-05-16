@@ -87,6 +87,7 @@ LEARNING_RATE: float = float(os.environ.get("LEARNING_RATE", "5e-5"))
 SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
 SAVE_EVAL_STEPS: int = int(os.environ.get("SAVE_EVAL_STEPS", "100"))
 USE_FP16: bool = os.environ.get("USE_FP16", "False").lower() == "true"
+USE_QUANTIZATION: bool = os.environ.get("USE_QUANTIZATION", "False").lower() == "true"
 
 # Get Weights & Biases configuration from environment variables
 WANDB_PROJECT: str = os.environ.get("WANDB_PROJECT", "eridu")
@@ -211,14 +212,21 @@ if USE_GRADIENT_CHECKPOINTING:
 # Put network in training mode
 sbert_model.train()
 
-# Only apply quantization when not using fp16 to avoid conflicts
-if not USE_FP16:
-    # 2. Tell PyTorch to quantize the Linear layers in the encoder
+# Validate that FP16 and quantization are not both enabled
+if USE_FP16 and USE_QUANTIZATION:
+    raise ValueError(
+        "Error: Cannot use both FP16 and quantization together. Please choose only one option."
+    )
+
+# Apply quantization if explicitly requested
+if USE_QUANTIZATION:
+    logger.debug("Applying quantization to Linear layers in the encoder")
+    # Tell PyTorch to quantize the Linear layers in the encoder
     for module in sbert_model.modules():
         if isinstance(module, torch.nn.Linear):
             module.qconfig = tq.get_default_qat_qconfig("fbgemm")
 
-    # 4. Prepare QAT: inserts FakeQuant and Observer modules
+    # Prepare QAT: inserts FakeQuant and Observer modules
     tq.prepare_qat(sbert_model, inplace=True)
 
 #
@@ -515,6 +523,7 @@ def main() -> None:
     print(f"  Batch size: {BATCH_SIZE}")
     print(f"  Epochs: {EPOCHS}")
     print(f"  FP16: {USE_FP16}")
+    print(f"  Quantization: {USE_QUANTIZATION}")
     print(f"  GPU enabled: {USE_GPU}")
     print(f"  Device: {device}")
     print(f"  Output folder: {SBERT_OUTPUT_FOLDER}")
