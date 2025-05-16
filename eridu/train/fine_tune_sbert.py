@@ -303,8 +303,8 @@ print(str(examples_df) + "\n")
 # Evaluate a sample of the evaluation data compared using raw SBERT before fine-tuning
 #
 
-# Use a simple approach for evaluation sampling
-sample_df: pd.DataFrame = eval_df.sample(frac=0.1, random_state=RANDOM_SEED)
+# Use a simple approach for evaluation sampling - use the same sample fraction as for training
+sample_df: pd.DataFrame = eval_df.sample(frac=SAMPLE_FRACTION, random_state=RANDOM_SEED)
 # Make sure we have at least a few samples
 if len(sample_df) < 5 and len(eval_df) >= 5:
     sample_df = eval_df.sample(n=5, random_state=RANDOM_SEED)
@@ -484,8 +484,8 @@ print(str(tuned_examples_df) + "\n")
 #
 
 # Use a simpler sampling approach for test data
-# Use 10% of test data or at least 10 samples, whichever is larger
-test_sample_size = max(int(len(test_df) * 0.1), min(len(test_df), 10))
+# Use the same sample fraction as for training or at least 10 samples, whichever is larger
+test_sample_size = max(int(len(test_df) * SAMPLE_FRACTION), min(len(test_df), 10))
 test_df = test_df.sample(n=test_sample_size, random_state=RANDOM_SEED)
 
 y_true: list[float] = test_df["match"].astype(float).tolist()
