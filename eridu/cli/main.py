@@ -150,6 +150,12 @@ def etl_report(parquet_path: str, truncate: int) -> None:
     show_default=True,
     help="Weights & Biases entity (username or team name)",
 )
+@click.option(
+    "--gradient-checkpointing/--no-gradient-checkpointing",
+    default=False,
+    show_default=True,
+    help="Enable gradient checkpointing to save memory at the cost of computation time",
+)
 def train(
     model: str,
     sample_fraction: float,
@@ -159,6 +165,7 @@ def train(
     use_gpu: bool,
     wandb_project: str,
     wandb_entity: str,
+    gradient_checkpointing: bool,
 ) -> None:
     """Fine-tune a sentence transformer (SBERT) model for entity matching."""
     click.echo(f"Fine-tuning SBERT model: {model}")
@@ -167,6 +174,7 @@ def train(
     click.echo(f"Epochs: {epochs}")
     click.echo(f"FP16: {fp16}")
     click.echo(f"Use GPU: {use_gpu}")
+    click.echo(f"Gradient checkpointing: {gradient_checkpointing}")
     click.echo(f"W&B Project: {wandb_project}")
     click.echo(f"W&B Entity: {wandb_entity}")
 
@@ -182,6 +190,9 @@ def train(
     # Disable fp16 if requested (important to fix the Half tensor error)
     if not fp16:
         os.environ["USE_FP16"] = "False"
+
+    # Set gradient checkpointing environment variable
+    os.environ["USE_GRADIENT_CHECKPOINTING"] = "true" if gradient_checkpointing else "false"
 
     # Import the fine_tune_sbert module here to avoid circular imports and run the module
     fine_tune_module = import_module("eridu.train.fine_tune_sbert")

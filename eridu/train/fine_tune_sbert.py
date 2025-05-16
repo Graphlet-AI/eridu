@@ -200,8 +200,13 @@ sbert_model: SentenceTransformer = SentenceTransformer(
         model_name=f"{SBERT_MODEL}-name-matcher-{VARIANT}",
     ),
 )
-# Enable gradient checkpointing to save memory
-sbert_model.gradient_checkpointing_enable()
+# Enable gradient checkpointing to save memory if requested
+USE_GRADIENT_CHECKPOINTING: bool = (
+    os.environ.get("USE_GRADIENT_CHECKPOINTING", "false").lower() == "true"
+)
+if USE_GRADIENT_CHECKPOINTING:
+    sbert_model.gradient_checkpointing_enable()
+    logger.debug("Gradient checkpointing enabled to save memory")
 
 # Put network in training mode
 sbert_model.train()
@@ -357,7 +362,7 @@ sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingAr
     logging_dir="./logs",
     weight_decay=0.02,
     gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
-    gradient_checkpointing=True,
+    gradient_checkpointing=USE_GRADIENT_CHECKPOINTING,
     optim=OPTIMIZER,
 )
 
@@ -513,6 +518,7 @@ def main() -> None:
     print(f"  GPU enabled: {USE_GPU}")
     print(f"  Device: {device}")
     print(f"  Output folder: {SBERT_OUTPUT_FOLDER}")
+    print(f"  Gradient checkpointing: {USE_GRADIENT_CHECKPOINTING}")
 
     # The model training actually happens at import time
     # This is a simple stub function to match the CLI's expected interface
