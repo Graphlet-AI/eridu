@@ -174,6 +174,12 @@ def etl_report(parquet_path: str, truncate: int) -> None:
     show_default=True,
     help="Enable gradient checkpointing to save memory at the cost of computation time",
 )
+@click.option(
+    "--weight-decay",
+    default=0.01,
+    show_default=True,
+    help="Weight decay (L2 regularization) to prevent overfitting",
+)
 def train(
     model: str,
     sample_fraction: float,
@@ -187,6 +193,7 @@ def train(
     wandb_project: str,
     wandb_entity: str,
     gradient_checkpointing: bool,
+    weight_decay: float,
 ) -> None:
     """Fine-tune a sentence transformer (SBERT) model for entity matching."""
     # Validate that FP16 and quantization are not both enabled
@@ -206,6 +213,7 @@ def train(
     click.echo(f"Quantization: {quantization}")
     click.echo(f"Use GPU: {use_gpu}")
     click.echo(f"Gradient checkpointing: {gradient_checkpointing}")
+    click.echo(f"Weight decay: {weight_decay}")
     click.echo(f"W&B Project: {wandb_project}")
     click.echo(f"W&B Entity: {wandb_entity}")
 
@@ -216,6 +224,7 @@ def train(
     os.environ["EPOCHS"] = str(epochs)
     os.environ["PATIENCE"] = str(patience)
     os.environ["USE_RESAMPLING"] = "true" if resampling else "false"
+    os.environ["WEIGHT_DECAY"] = str(weight_decay)
     os.environ["WANDB_PROJECT"] = wandb_project
     os.environ["WANDB_ENTITY"] = wandb_entity
     os.environ["USE_GPU"] = "true" if use_gpu else "false"

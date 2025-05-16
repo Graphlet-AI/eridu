@@ -105,6 +105,7 @@ The training process supports multiple epochs with an early stopping mechanism t
 - Use `--epochs` to specify the number of training epochs (default: 10)
 - Use `--patience` to control early stopping patience (default: 2)
 - Use `--resampling/--no-resampling` to enable/disable dataset resampling for each epoch
+- Use `--weight-decay` to control L2 regularization strength (default: 0.01)
 
 When working with a sample of the dataset (`--sample-fraction` < 1.0), the resampling feature creates a fresh sample for each epoch, allowing the model to see different examples in each training cycle. This is particularly useful when working with very large datasets where using the full dataset is impractical.
 
@@ -115,6 +116,9 @@ eridu train --epochs 20 --patience 5 --resampling --sample-fraction 0.1
 
 # Train for 15 epochs without resampling on 20% of the data
 eridu train --epochs 15 --no-resampling --sample-fraction 0.2
+
+# Train with lower weight decay to reduce regularization (potentially better for similar pairs)
+eridu train --epochs 10 --weight-decay 0.001 --sample-fraction 0.1
 ```
 
 ### GPU Acceleration
@@ -254,7 +258,8 @@ wandb login
 
 # I needed to increase the batch size to utilize A100 GPUs' 40GB GPU RAM
 # Using 10 epochs with resampling on each epoch (new example pairs in each epoch)
-eridu train --use-gpu --batch-size 5000 --epochs 10 --patience 3 --resampling --sample-fraction 0.1
+# Using a weight decay of 0.01 for regularization
+eridu train --use-gpu --batch-size 5000 --epochs 10 --patience 3 --resampling --weight-decay 0.01 --sample-fraction 0.1
 ```
 
 ## License
