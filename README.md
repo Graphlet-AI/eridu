@@ -110,6 +110,7 @@ The training process supports multiple epochs with an early stopping mechanism t
 - Use `--weight-decay` to control L2 regularization strength (default: 0.01)
 - Use `--random-seed` to set the random seed for reproducibility (default: 31337)
 - Use `--warmup-ratio` to control the learning rate warmup (default: 0.1)
+- Use `--learning-rate` to set the optimizer learning rate (default: 3e-5)
 - Use `--save-strategy` to control when checkpoints are saved (`steps`, `epoch`, or `no`) (default: `steps`)
 - Use `--eval-strategy` to control when evaluation happens (`steps`, `epoch`, or `no`) (default: `steps`)
 
@@ -129,6 +130,9 @@ eridu train --epochs 10 --weight-decay 0.001 --sample-fraction 0.1
 
 # Train with custom random seed and warmup ratio
 eridu train --random-seed 42 --warmup-ratio 0.2 --sample-fraction 0.1
+
+# Train with a different learning rate
+eridu train --learning-rate 5e-5 --sample-fraction 0.1
 
 # Train with evaluation at the end of each epoch instead of at steps
 eridu train --save-strategy epoch --eval-strategy epoch --sample-fraction 0.1
@@ -275,7 +279,8 @@ wandb login
 # Using a random seed of 31337 for reproducibility
 # Using warmup ratio of 0.1 for learning rate schedule
 # Using steps-based save and evaluation strategy
-eridu train --use-gpu --batch-size 1100 --epochs 8 --patience 1 --resampling --weight-decay 0.01 --random-seed 31337 --warmup-ratio 0.1 --save-strategy steps --eval-strategy steps --sample-fraction 0.1
+# Using learning rate of 3e-5 for optimization
+eridu train --use-gpu --batch-size 1000 --epochs 8 --patience 1 --resampling --weight-decay 0.01 --random-seed 31337 --warmup-ratio 0.1 --learning-rate 3e-5 --save-strategy steps --eval-strategy steps --sample-fraction 0.1
 ```
 
 ## License

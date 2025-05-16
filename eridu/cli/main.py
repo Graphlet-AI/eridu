@@ -206,6 +206,12 @@ def etl_report(parquet_path: str, truncate: int) -> None:
     show_default=True,
     help="Strategy to evaluate model during training",
 )
+@click.option(
+    "--learning-rate",
+    default=3e-5,
+    show_default=True,
+    help="Learning rate for optimizer",
+)
 def train(
     model: str,
     sample_fraction: float,
@@ -224,6 +230,7 @@ def train(
     warmup_ratio: float,
     save_strategy: str,
     eval_strategy: str,
+    learning_rate: float,
 ) -> None:
     """Fine-tune a sentence transformer (SBERT) model for entity matching."""
     # Validate that FP16 and quantization are not both enabled
@@ -248,6 +255,7 @@ def train(
     click.echo(f"Warmup ratio: {warmup_ratio}")
     click.echo(f"Save strategy: {save_strategy}")
     click.echo(f"Eval strategy: {eval_strategy}")
+    click.echo(f"Learning rate: {learning_rate}")
     click.echo(f"W&B Project: {wandb_project}")
     click.echo(f"W&B Entity: {wandb_entity}")
 
@@ -263,6 +271,7 @@ def train(
     os.environ["WARMUP_RATIO"] = str(warmup_ratio)
     os.environ["SAVE_STRATEGY"] = save_strategy
     os.environ["EVAL_STRATEGY"] = eval_strategy
+    os.environ["LEARNING_RATE"] = str(learning_rate)
     os.environ["WANDB_PROJECT"] = wandb_project
     os.environ["WANDB_ENTITY"] = wandb_entity
     os.environ["USE_GPU"] = "true" if use_gpu else "false"
