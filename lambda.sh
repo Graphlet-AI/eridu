@@ -8,7 +8,7 @@
 export LAMBDA_IP="<IP>"
 
 # Which region FS are we using?
-export LAMBDA_REGION_FS="default-us-south-1"
+export LAMBDA_REGION_FS="default-graphlet-ai-fs"
 
 # Lambda Labs SSH key
 export LAMBDA_LABS_KEY="lambda-labs-ssh-key.pem"
@@ -30,6 +30,9 @@ cd ${HOME}/${LAMBDA_REGION_FS}
 
 # Update apt
 sudo apt update -y
+
+# Install Java for PySpark ETL
+sudo apt install openjdk-11-jre-headless -y
 
 
 #
@@ -64,9 +67,6 @@ Host github.com
   IdentityFile ~/.ssh/id_lambda_github
 EOF
 eval "$(ssh-agent -s)"
-
-# Install Java for PySpark ETL
-sudo apt install openjdk-11-jre-headless -y
 
 # Clone the project repository and install its dependencies
 cd ${HOME}/${LAMBDA_REGION_FS}
