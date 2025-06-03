@@ -13,6 +13,7 @@ import pandas as pd
 import seaborn as sns
 import torch
 import torch.quantization as tq
+import wandb
 from datasets import Dataset  # type: ignore
 from scipy.stats import iqr
 from sentence_transformers import (
@@ -35,7 +36,6 @@ from sklearn.model_selection import train_test_split  # type: ignore
 from transformers import EarlyStoppingCallback, TrainerCallback
 from transformers.integrations import WandbCallback
 
-import wandb
 from eridu.train.callbacks import ResamplingCallback
 from eridu.train.dataset import ResamplingDataset
 from eridu.train.utils import compute_classifier_metrics  # noqa: F401
@@ -88,8 +88,8 @@ PATIENCE: int = int(os.environ.get("PATIENCE", "2"))
 LEARNING_RATE: float = float(os.environ.get("LEARNING_RATE", "3e-5"))
 WEIGHT_DECAY: float = float(os.environ.get("WEIGHT_DECAY", "0.01"))
 WARMUP_RATIO: float = float(os.environ.get("WARMUP_RATIO", "0.1"))
-SAVE_STRATEGY: str = os.environ.get("SAVE_STRATEGY", "steps")
-EVAL_STRATEGY: str = os.environ.get("EVAL_STRATEGY", "steps")
+SAVE_STRATEGY: str = os.environ.get("SAVE_STRATEGY", "epoch")
+EVAL_STRATEGY: str = os.environ.get("EVAL_STRATEGY", "epoch")
 SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
 SAVE_EVAL_STEPS: int = int(os.environ.get("SAVE_EVAL_STEPS", "100"))
 USE_FP16: bool = os.environ.get("USE_FP16", "False").lower() == "true"
@@ -121,13 +121,14 @@ wandb.init(
         "weight_decay": WEIGHT_DECAY,
         "random_seed": RANDOM_SEED,
         "warmup_ratio": WARMUP_RATIO,
-        "save_strategy": os.environ.get("SAVE_STRATEGY", "steps"),
-        "eval_strategy": os.environ.get("EVAL_STRATEGY", "steps"),
+        "save_strategy": os.environ.get("SAVE_STRATEGY", "epoch"),
+        "eval_strategy": os.environ.get("EVAL_STRATEGY", "epoch"),
         "sbert_model": SBERT_MODEL,
         "model_save_name": MODEL_SAVE_NAME,
         "sbert_output_folder": SBERT_OUTPUT_FOLDER,
-        "save_eval_steps": SAVE_EVAL_STEPS,
+        # "save_eval_steps": SAVE_EVAL_STEPS,
         "use_resampling": USE_RESAMPLING,
+        "save_total_limit": 0,  # Save all checkpoints, no limit
     },
     save_code=True,
 )
