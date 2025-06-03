@@ -8,13 +8,13 @@
 export LAMBDA_IP="<IP>"
 
 # Which region FS are we using?
-export LAMBDA_REGION_FS="default-graphlet-ai-fs"
+export LAMBDA_REGION_FS="default-us-east-1"
 
 # Lambda Labs SSH key
 export LAMBDA_LABS_KEY="lambda-labs-ssh-key.pem"
 
 # Copy over Github SSH keys
-scp -i ~/.ssh/${LAMBDA_LABS_KEY} ~/.ssh/id_lambda_github* ubuntu@${LAMBDA_IP}:.ssh/
+scp -i ~/.ssh/${LAMBDA_LABS_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ~/.ssh/id_lambda_github* ubuntu@${LAMBDA_IP}:.ssh/
 
 
 #
