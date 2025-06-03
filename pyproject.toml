@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eridu"
-version = "0.1.4"
+version = "0.1.5"
 description = "Deep fuzzy matching people and company names for multilingual entity resolution using representation learning"
 authors = ["Russell Jurney, Graphlet AI, <rjurney@graphlet.ai>", "Russell Jurney <russell.jurney@gmail.com>"]
 license = "Apache 2.0"
@@ -53,7 +53,7 @@ priority = "explicit"
 
 [project]
 name = "eridu"
-version = "0.1.4"
+version = "0.1.5"
 
 [tool.poetry.urls]
 "Company" = "https://graphlet.ai"

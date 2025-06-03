@@ -483,18 +483,25 @@ print(str(tuned_examples_df) + "\n")
 # Evaluate ROC curve of the fine-tuned model and determine optimal threshold
 #
 
-# Use a simpler sampling approach for test data
-# Use the same sample fraction as for training or at least 10 samples, whichever is larger
-test_sample_size = max(int(len(test_df) * SAMPLE_FRACTION), min(len(test_df), 10))
+# Use the SAMPLE_FRACTION but ensure we have at least 1,000 test records (or all available if fewer)
+test_sample_size = max(int(len(test_df) * SAMPLE_FRACTION), min(len(test_df), 1000))
 test_df = test_df.sample(n=test_sample_size, random_state=RANDOM_SEED)
 
-y_true: list[float] = test_df["match"].astype(float).tolist()
+# Create a copy of test_df with predictions for later analysis
+results_test_df = test_df.copy()
+
 # Use GPU acceleration for inference
 print(f"Running inference on {device} for {len(test_df):,} test records")
 
 y_scores: np.ndarray[Any, Any] = sbert_compare_multiple(
     sbert_model, test_df["left_name"], test_df["right_name"], use_gpu=True
 )
+
+# Store scores in results dataframe
+results_test_df["similarity"] = y_scores
+results_test_df["true_label"] = test_df["match"].astype(float)
+
+y_true: list[float] = test_df["match"].astype(float).tolist()
 
 # Compute precision-recall curve
 precision: list[float]
@@ -515,6 +522,18 @@ print(f"Best F1 Score: {best_f1_score}")
 
 roc_auc: float = roc_auc_score(y_true, y_scores)
 print(f"AUC-ROC: {roc_auc}")
+
+# Add best threshold and predicted labels to the results dataframe
+results_test_df["best_threshold"] = best_threshold
+results_test_df["predicted_match"] = results_test_df["similarity"] >= best_threshold
+results_test_df["correct_prediction"] = (
+    results_test_df["predicted_match"] == results_test_df["true_label"]
+)
+
+# Save test results to parquet in the same folder as the model
+results_path = os.path.join(SBERT_OUTPUT_FOLDER, "test_results.parquet")
+results_test_df.to_parquet(results_path)
+print(f"Saved test results to {results_path}")
 
 # Create a DataFrame for Seaborn
 pr_data: pd.DataFrame = pd.DataFrame(
