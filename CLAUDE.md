@@ -25,7 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Strings: Use double quotes for strings, use f-strings for string interpolation
 - Docstrings: Use Numpy style for docstrings, include type hints in docstrings
 - Comments: Use comments to explain complex code, avoid obvious comments
-- Tests: Use pytest for testing, include type hints in test functions, use fixtures for setup/teardown
+- Tests: Use pytest for testing, include type hints in test functions, use fixtures for setup/teardown. Don't create a class for each test file, use functions instead. Use fixtures to feed the tests data. Use `pytest.mark.parametrize` for parameterized tests.
 - Type hints: Use type hints for all function parameters and return types
 - Type checking: Use mypy for type checking, run mypy before committing code
 - Logging: Use logging for error handling, avoid print statements
@@ -36,6 +36,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Command Line Interfaces - at the end of your coding tasks, please alter the 'eridu' CLI to accommodate the changes.
 - Separate logic from the CLI - separate the logic under `eridu` and sub-modules from the command line interface (CLI) code in `eridu.cli`. The CLI should only handle input/output from/to the user and should not contain any business logic. ETL code should go in `eridu.etl`, training code should go in `eridu.train` and neither should have logic in the CLI. The CLI should only call the ETL, training and other code and handle input/output.
+- Help strings - never put the default option values in the help strings. The help strings should only describe what the option does, not what the default value is. The default values are already documented in the `config.yml` file and will be printed via the `@click.command(context_settings={"show_default": True})` decorator of each Click command.
 - PySpark - Limit the number of functions within scripts that control dataflow in Spark scripts. We prefer a more linear flow. This only applies to Spark code.
 - Flake8 - fix flake8 errors without being asked and without my verification.
 - Black - fix black errors without being asked and without my verification.
