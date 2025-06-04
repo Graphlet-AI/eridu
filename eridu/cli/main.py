@@ -4,11 +4,14 @@ import os
 from collections import OrderedDict
 from importlib import import_module
 from pathlib import Path
+from typing import Optional
 
 import click
 import pandas as pd
 import requests
 from tqdm import tqdm
+
+from eridu.etl import evaluate as evaluate_module
 
 
 class OrderedGroup(click.Group):
@@ -324,6 +327,41 @@ def compare(name1: str, name2: str, model_path: str, use_gpu: bool) -> None:
 
     # Print the similarity score rounded to 3 decimal places
     click.echo(f"{similarity:.3f}")
+
+
+@cli.command()
+@click.option(
+    "--model-path",
+    default=None,
+    help="Path to the fine-tuned model directory (default: auto-detect based on environment)",
+)
+@click.option(
+    "--use-gpu/--no-gpu",
+    default=True,
+    show_default=True,
+    help="Whether to use GPU acceleration for evaluation",
+)
+@click.option(
+    "--threshold",
+    default=None,
+    type=float,
+    help="Classification threshold (default: auto-determine optimal threshold)",
+)
+def evaluate(model_path: Optional[str], use_gpu: bool, threshold: Optional[float]) -> None:
+    """Evaluate a trained SBERT model on the test dataset.
+
+    Loads the model and test data, runs inference, and produces an evaluation report
+    with accuracy, precision, recall, F1 score, and other metrics.
+
+    Example: eridu evaluate
+    """
+    try:
+        evaluate_module.evaluate_and_print_report(model_path, use_gpu, threshold)
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}")
+        click.echo("Make sure you've run 'eridu train' first to generate the model and test data.")
+    except Exception as e:
+        click.echo(f"Error during evaluation: {e}")
 
 
 if __name__ == "__main__":

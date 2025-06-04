@@ -13,7 +13,6 @@ import pandas as pd
 import seaborn as sns
 import torch
 import torch.quantization as tq
-import wandb
 from datasets import Dataset  # type: ignore
 from scipy.stats import iqr
 from sentence_transformers import (
@@ -36,6 +35,7 @@ from sklearn.model_selection import train_test_split  # type: ignore
 from transformers import EarlyStoppingCallback, TrainerCallback
 from transformers.integrations import WandbCallback
 
+import wandb
 from eridu.train.callbacks import ResamplingCallback
 from eridu.train.dataset import ResamplingDataset
 from eridu.train.utils import compute_classifier_metrics  # noqa: F401
@@ -178,6 +178,12 @@ eval_df, test_df = train_test_split(tmp_df, test_size=0.5, random_state=RANDOM_S
 print(f"\nTraining data (full):   {len(train_df):,}")
 print(f"Evaluation data:        {len(eval_df):,}")
 print(f"Test data:              {len(test_df):,}\n")
+
+# Save the full test split for later evaluation
+os.makedirs(SBERT_OUTPUT_FOLDER, exist_ok=True)
+test_split_path = os.path.join(SBERT_OUTPUT_FOLDER, "test_split.parquet")
+test_df.to_parquet(test_split_path)
+print(f"Saved full test split ({len(test_df):,} records) to {test_split_path}")
 
 # Check if we're using resampling
 if USE_RESAMPLING and SAMPLE_FRACTION < 1.0:
