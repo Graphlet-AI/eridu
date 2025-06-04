@@ -23,7 +23,7 @@ scp -i ~/.ssh/${LAMBDA_LABS_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFi
 # TODO: Fix this so the script below runs from this SSH command.
 #
 
-ssh -i ~/.ssh/lambda-labs-ssh-key.pem ubuntu@${LAMBDA_IP}
+ssh -i ~/.ssh/${LAMBDA_LABS_KEY} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${LAMBDA_IP}
 
 # Do everything on the persistent filesystem
 cd ${HOME}/${LAMBDA_REGION_FS}
