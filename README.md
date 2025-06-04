@@ -276,13 +276,28 @@ eridu etl report --parquet-path data/pairs-all.parquet
 wandb login
 
 # I needed to increase the batch size to utilize A100 GPUs' 40GB GPU RAM
-# Using 10 epochs with resampling on each epoch (new example pairs in each epoch)
+# Using 4 epochs with resampling on each epoch (new example pairs in each epoch)
 # Using a weight decay of 0.01 for regularization
 # Using a random seed of 31337 for reproducibility
 # Using warmup ratio of 0.1 for learning rate schedule
-# Using steps-based save and evaluation strategy
+# Using epoch-based save and evaluation strategy
 # Using learning rate of 3e-5 for optimization
-eridu train --use-gpu --batch-size 1000 --epochs 8 --patience 1 --resampling --weight-decay 0.01 --random-seed 31337 --warmup-ratio 0.1 --learning-rate 3e-5 --save-strategy steps --eval-strategy steps --sample-fraction 0.1
+# Using FP16 mixed precision for faster training
+eridu train --use-gpu \
+            --batch-size 768 \
+            --epochs 4 \
+            --patience 1 \
+            --resampling \
+            --weight-decay 0.01 \
+            --random-seed 31337 \
+            --warmup-ratio 0.1 \
+            --learning-rate 3e-5 \
+            --save-strategy epoch \
+            --eval-strategy epoch \
+            --sample-fraction 0.1 \
+            --fp16
+```
+
 ```
 
 ## License
