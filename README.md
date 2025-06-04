@@ -285,7 +285,7 @@ wandb login
 # Using FP16 mixed precision for faster training
 eridu train --use-gpu \
             --batch-size 16 \
-            --epochs 4 \
+            --epochs 5 \
             --patience 1 \
             --resampling \
             --weight-decay 0.01 \
