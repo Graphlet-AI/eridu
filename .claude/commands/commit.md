@@ -1,1 +1,1 @@
-Clean up any pre-commit issues without my intervention and then commit the outstanding changes
+Clean up any pre-commit issues without my intervention and then commit the outstanding changes. DO NOT mention yourself, Claude in the commit message. Keep the commit message straightforward and to the point - do not put extraneous details, simply summarize the work performed. Do not put anything in commit messages other than a description of the code changes.
