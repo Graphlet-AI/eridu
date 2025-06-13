@@ -91,8 +91,10 @@ SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
 SAVE_EVAL_STEPS: int = int(os.environ.get("SAVE_EVAL_STEPS", "100"))
 USE_FP16: bool = os.environ.get("USE_FP16", "False").lower() == "true"
 USE_QUANTIZATION: bool = os.environ.get("USE_QUANTIZATION", "False").lower() == "true"
+
 # Enable resampling of training data for each epoch when sample fraction < 1.0
 USE_RESAMPLING: bool = os.environ.get("USE_RESAMPLING", "True").lower() == "true"
+POST_SAMPLE_PCT: float = float(os.environ.get("POST_SAMPLE_PCT", 0.01))
 
 # Get Weights & Biases configuration from environment variables
 WANDB_PROJECT: str = os.environ.get("WANDB_PROJECT", "eridu")
@@ -501,7 +503,7 @@ print(str(tuned_examples_df) + "\n")
 #
 
 # Use the SAMPLE_FRACTION but ensure we have at least 1,000 test records (or all available if fewer)
-test_sample_size = max(int(len(test_df) * SAMPLE_FRACTION), min(len(test_df), 1000))
+test_sample_size = max(int(len(test_df) * POST_SAMPLE_PCT), min(len(test_df), 1000))
 test_df = test_df.sample(n=test_sample_size, random_state=RANDOM_SEED)
 
 # Create a copy of test_df with predictions for later analysis
