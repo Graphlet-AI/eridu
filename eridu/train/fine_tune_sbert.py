@@ -15,11 +15,7 @@ import torch
 import torch.quantization as tq
 from datasets import Dataset  # type: ignore
 from scipy.stats import iqr
-from sentence_transformers import (
-    SentenceTransformer,
-    SentenceTransformerTrainer,
-    losses,
-)
+from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
 from sentence_transformers.evaluation import BinaryClassificationEvaluator
 from sentence_transformers.model_card import SentenceTransformerModelCardData
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
@@ -38,6 +34,7 @@ from transformers.integrations import WandbCallback
 import wandb
 from eridu.train.callbacks import ResamplingCallback
 from eridu.train.dataset import ResamplingDataset
+from eridu.train.loss import ContextAdaptiveContrastiveLoss
 from eridu.train.utils import compute_classifier_metrics  # noqa: F401
 from eridu.train.utils import (
     compute_sbert_metrics,
@@ -320,8 +317,8 @@ print(f"Running initial evaluation on {device} for {len(sample_df):,} sample rec
 result_df: pd.DataFrame = sbert_compare_multiple_df(
     sbert_model, sample_df["left_name"], sample_df["right_name"], sample_df["match"], use_gpu=True
 )
-error_s: pd.Series = np.abs(result_df.match.astype(float) - result_df.similarity)
-score_diff_s: pd.Series = np.abs(error_s - sample_df.score)
+error_s: pd.Series = np.abs(result_df.match.astype(float) - result_df.similarity)  # type: ignore
+score_diff_s: pd.Series = np.abs(error_s - sample_df.score)  # type: ignore
 
 # Compute the mean, standard deviation, and interquartile range of the error
 stats_df: pd.DataFrame = pd.DataFrame(  # retain and append fine-tuned SBERT stats for comparison
@@ -387,8 +384,21 @@ wandb.log(
 # Fine-tune the SBERT model using contrastive loss
 #
 
-# This will effectively train the embedding model. MultipleNegativesRankingLoss did not work.
-loss: losses.ContrastiveLoss = losses.ContrastiveLoss(model=sbert_model)
+# # This will effectively train the embedding model. MultipleNegativesRankingLoss did not work.
+# loss: losses.ContrastiveLoss = losses.ContrastiveLoss(model=sbert_model)
+
+# # These are default arguments for OnlineContrastiveLoss
+# loss: losses.OnlineContrastiveLoss = losses.OnlineContrastiveLoss(
+#     model=sbert_model,
+#     margin=0.5,  # Margin for contrastive loss
+#     distance_metric=SiameseDistanceMetric.COSINE_DISTANCE,
+# )
+
+loss: ContextAdaptiveContrastiveLoss = ContextAdaptiveContrastiveLoss(
+    model=sbert_model,
+    margin=0.5,  # Margin for contrastive loss
+    gate_scale=5.0,  # Scale for the gate function
+)
 
 # Set lots of options to reduce memory usage and improve training speed
 sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingArguments(
@@ -401,7 +411,7 @@ sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingAr
     warmup_ratio=WARMUP_RATIO,
     run_name=SBERT_MODEL,
     load_best_model_at_end=True,
-    save_total_limit=5,
+    save_total_limit=0,  # Save all checkpoints, no limit
     save_steps=SAVE_EVAL_STEPS,
     eval_steps=SAVE_EVAL_STEPS,
     save_strategy=SAVE_STRATEGY,
@@ -524,6 +534,7 @@ best_threshold_index = np.argmax(f1_scores)
 best_threshold: float = thresholds[best_threshold_index]
 best_f1_score: float = f1_scores[best_threshold_index]
 
+print(f"Best Epoch (threshold index): {best_threshold_index + 1}")
 print(f"Best Threshold: {best_threshold}")
 print(f"Best F1 Score: {best_f1_score}")
 
