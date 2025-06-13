@@ -287,14 +287,13 @@ eridu train --use-gpu \
             --batch-size 64 \
             --epochs 8 \
             --patience 1 \
-            --resampling \
             --weight-decay 0.01 \
             --random-seed 31337 \
             --warmup-ratio 0.1 \
-            --learning-rate 3e-5 \
+            --learning-rate 1e-5 \
             --save-strategy epoch \
             --eval-strategy epoch \
-            --sample-fraction 0.25 \
+            --sample-fraction 1.0 \
             --input data/filtered/people.parquet \
             --data-type people
 ```
