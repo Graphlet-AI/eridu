@@ -295,6 +295,7 @@ eridu train --use-gpu \
             --eval-strategy epoch \
             --sample-fraction 1.0 \
             --input data/filtered/people.parquet \
+            --output data/output \
             --data-type people
 ```
 
