@@ -94,6 +94,10 @@ USE_QUANTIZATION: bool = os.environ.get("USE_QUANTIZATION", "False").lower() == 
 USE_RESAMPLING: bool = os.environ.get("USE_RESAMPLING", "True").lower() == "true"
 POST_SAMPLE_PCT: float = float(os.environ.get("POST_SAMPLE_PCT", 0.01))
 
+# Get input path and data type from environment variables
+INPUT_PATH: str = os.environ.get("INPUT_PATH", "data/pairs-all.parquet")
+DATA_TYPE: str = os.environ.get("DATA_TYPE", "both")
+
 # Get Weights & Biases configuration from environment variables
 WANDB_PROJECT: str = os.environ.get("WANDB_PROJECT", "eridu")
 WANDB_ENTITY: str = os.environ.get("WANDB_ENTITY", "rjurney")
@@ -105,6 +109,8 @@ wandb.init(
     project=WANDB_PROJECT,
     # track hyperparameters and run metadata
     config={
+        "input_path": INPUT_PATH,
+        "data_type": DATA_TYPE,
         "variant": VARIANT,
         "optimizer": OPTIMIZER,
         "epochs": EPOCHS,
@@ -158,7 +164,7 @@ print(f"Device for fine-tuning SBERT: {device}")
 # Load and prepare the dataset
 #
 
-dataset: pd.DataFrame = pd.read_parquet("data/pairs-all.parquet")
+dataset: pd.DataFrame = pd.read_parquet(INPUT_PATH)
 
 # Display the first few rows of the dataset
 print("\nRaw training data sample:\n")

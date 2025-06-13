@@ -149,6 +149,19 @@ def etl_filter(input: str, output: str) -> None:
     help="Base SBERT model to fine-tune",
 )
 @click.option(
+    "--input-path",
+    default="./data/pairs-all.parquet",
+    show_default=True,
+    help="Path to the input Parquet file for training",
+)
+@click.option(
+    "--data-type",
+    type=click.Choice(["people", "companies", "both"]),
+    default="both",
+    show_default=True,
+    help="Type of data to train on (logged to WandB as metadata)",
+)
+@click.option(
     "--sample-fraction",
     default=0.01,
     show_default=True,
@@ -247,6 +260,8 @@ def etl_filter(input: str, output: str) -> None:
 )
 def train(
     model: str,
+    input_path: str,
+    data_type: str,
     sample_fraction: float,
     batch_size: int,
     epochs: int,
@@ -274,6 +289,8 @@ def train(
         )
 
     click.echo(f"Fine-tuning SBERT model: {model}")
+    click.echo(f"Input path: {input_path}")
+    click.echo(f"Data type: {data_type}")
     click.echo(f"Sample fraction: {sample_fraction}")
     click.echo(f"Batch size: {batch_size}")
     click.echo(f"Epochs: {epochs}")
@@ -296,6 +313,8 @@ def train(
 
     # Set environment variables based on CLI options
     os.environ["SBERT_MODEL"] = model
+    os.environ["INPUT_PATH"] = input_path
+    os.environ["DATA_TYPE"] = data_type
     os.environ["SAMPLE_FRACTION"] = str(sample_fraction)
     os.environ["BATCH_SIZE"] = str(batch_size)
     os.environ["EPOCHS"] = str(epochs)

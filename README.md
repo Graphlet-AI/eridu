@@ -294,8 +294,8 @@ eridu train --use-gpu \
             --learning-rate 3e-5 \
             --save-strategy epoch \
             --eval-strategy epoch \
-            --sample-fraction 0.05
-            # --fp16
+            --sample-fraction 0.05 \
+            --input ./data/filtered/people.parquet
 ```
 
 ## License
