@@ -163,6 +163,14 @@ def etl_filter(input: str, output: str) -> None:
     help="Type of data to train on (logged to WandB as metadata)",
 )
 @click.option(
+    "--output",
+    "--output-path",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True),
+    default="./data/output",
+    show_default=True,
+    help="Directory where training output and model will be saved",
+)
+@click.option(
     "--sample-fraction",
     default=0.01,
     show_default=True,
@@ -263,6 +271,7 @@ def train(
     model: str,
     input: str,
     data_type: str,
+    output: str,
     sample_fraction: float,
     batch_size: int,
     epochs: int,
@@ -292,6 +301,7 @@ def train(
     click.echo(f"Fine-tuning SBERT model: {model}")
     click.echo(f"Input path: {input}")
     click.echo(f"Data type: {data_type}")
+    click.echo(f"Output path: {output}")
     click.echo(f"Sample fraction: {sample_fraction}")
     click.echo(f"Batch size: {batch_size}")
     click.echo(f"Epochs: {epochs}")

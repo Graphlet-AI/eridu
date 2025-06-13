@@ -96,6 +96,7 @@ POST_SAMPLE_PCT: float = float(os.environ.get("POST_SAMPLE_PCT", 0.01))
 
 # Get input path and data type from environment variables
 INPUT_PATH: str = os.environ.get("INPUT_PATH", "data/pairs-all.parquet")
+OUTPUT_PATH: str = os.environ.get("OUTPUT_PATH", "data/output")
 DATA_TYPE: str = os.environ.get("DATA_TYPE", "both")
 
 # Get Weights & Biases configuration from environment variables
@@ -110,6 +111,7 @@ wandb.init(
     # track hyperparameters and run metadata
     config={
         "input_path": INPUT_PATH,
+        "output_path": OUTPUT_PATH,
         "data_type": DATA_TYPE,
         "variant": VARIANT,
         "optimizer": OPTIMIZER,
@@ -554,7 +556,7 @@ results_test_df["correct_prediction"] = (
 )
 
 # Save test results to parquet in the same folder as the model
-results_path = os.path.join(SBERT_OUTPUT_FOLDER, "test_results.parquet")
+results_path = os.path.join(OUTPUT_PATH, "test_results.parquet")
 results_test_df.to_parquet(results_path)
 print(f"Saved test results to {results_path}")
 
