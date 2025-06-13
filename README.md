@@ -285,7 +285,7 @@ wandb login
 # Using FP16 mixed precision for faster training
 eridu train --use-gpu \
             --batch-size 64 \
-            --epochs 5 \
+            --epochs 8 \
             --patience 1 \
             --resampling \
             --weight-decay 0.01 \
@@ -294,9 +294,9 @@ eridu train --use-gpu \
             --learning-rate 3e-5 \
             --save-strategy epoch \
             --eval-strategy epoch \
-            --sample-fraction 0.05 \
-            --input ./data/filtered/people.parquet
-            --type "people"
+            --sample-fraction 0.25 \
+            --input data/filtered/people.parquet \
+            --data-type people
 ```
 
 ## License
