@@ -38,11 +38,20 @@ def filter_pairs(input_path: str, output_path: str) -> None:
         # Apply filter and select columns
         filtered_df = pairs_df.filter(~F.col("source").startswith("Q"))
 
-        # Show filtered count
+        # Remove duplicates based on key fields
+        duplicate_cols = ["left_name", "right_name", "left_category", "right_category", "match"]
+        before_dedup_count = filtered_df.count()
+        filtered_df = filtered_df.dropDuplicates(duplicate_cols)
+        after_dedup_count = filtered_df.count()
+
+        click.echo(f"Removed {before_dedup_count - after_dedup_count:,} duplicate records")
+        click.echo(f"Records after deduplication: {after_dedup_count:,}")
+
+        # Show final filtered count (after both source filter and deduplication)
         filtered_count = filtered_df.count()
-        click.echo(f"Filtered record count: {filtered_count:,}")
+        click.echo(f"Final filtered record count: {filtered_count:,}")
         click.echo(
-            f"Removed {initial_count - filtered_count:,} records ({(initial_count - filtered_count) / initial_count * 100:.1f}%)"
+            f"Total removed {initial_count - filtered_count:,} records ({(initial_count - filtered_count) / initial_count * 100:.1f}%)"
         )
 
         people_df = (

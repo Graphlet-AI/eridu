@@ -70,6 +70,54 @@ def generate_pairs_report(parquet_path: str, truncate: int = 20) -> None:
     print(f"\n=== Single Word Names (Same Language): {single_word_names.count():,} ===")
     single_word_names.show(10, truncate=truncate)
 
+    # Check for duplicates based on key fields
+    print("\n=== Duplicate Analysis ===")
+    duplicate_cols = ["left_name", "right_name", "left_category", "right_category", "match"]
+
+    # Count total records
+    total_records = pairs_df.count()
+
+    # Count unique records based on the key fields
+    unique_records = pairs_df.select(*duplicate_cols).distinct().count()
+
+    # Calculate duplicates
+    duplicate_count = total_records - unique_records
+    duplicate_pct = (duplicate_count / total_records * 100) if total_records > 0 else 0
+
+    print(f"Total records: {total_records:,}")
+    print(f"Unique records (by {', '.join(duplicate_cols)}): {unique_records:,}")
+    print(f"Duplicate records: {duplicate_count:,} ({duplicate_pct:.1f}%)")
+
+    # Show examples of duplicated records
+    if duplicate_count > 0:
+        print("\n=== Duplicate Examples ===")
+        # Group by the key fields and show records that appear more than once
+        duplicated_df = (
+            pairs_df.groupBy(*duplicate_cols)
+            .count()
+            .filter(F.col("count") > 1)
+            .orderBy(F.col("count").desc())
+        )
+
+        print(f"Unique duplicate patterns: {duplicated_df.count():,}")
+        duplicated_df.show(10, truncate=False)
+
+        # Show actual duplicate records for the top pattern
+        if duplicated_df.count() > 0:
+            top_duplicate = duplicated_df.first()
+            if top_duplicate is not None:
+                print(
+                    f"\n=== Sample Duplicate Records (Pattern appears {top_duplicate['count']} times) ==="
+                )
+                sample_duplicates = pairs_df.filter(
+                    (F.col("left_name") == top_duplicate["left_name"])
+                    & (F.col("right_name") == top_duplicate["right_name"])
+                    & (F.col("left_category") == top_duplicate["left_category"])
+                    & (F.col("right_category") == top_duplicate["right_category"])
+                    & (F.col("match") == top_duplicate["match"])
+                )
+                sample_duplicates.show(truncate=False)
+
     spark.stop()
 
 
