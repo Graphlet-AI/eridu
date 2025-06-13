@@ -284,7 +284,7 @@ wandb login
 # Using learning rate of 3e-5 for optimization
 # Using FP16 mixed precision for faster training
 eridu train --use-gpu \
-            --batch-size 64 \
+            --batch-size 32 \
             --epochs 8 \
             --patience 1 \
             --weight-decay 0.01 \
