@@ -23,8 +23,18 @@ def filter_pairs(input_path: str, output_path: str) -> None:
     # Create output directory if it doesn't exist
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Initialize Spark session
-    spark = SparkSession.builder.appName("eridu-filter").getOrCreate()
+    # Create Spark session with proper memory configuration
+    spark = (
+        SparkSession.builder.appName("Eridu ETL Report")
+        .config("spark.driver.memory", "16g")
+        .config("spark.driver.maxResultSize", "8g")
+        .config("spark.sql.execution.arrow.maxRecordsPerBatch", "10000")
+        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+        .config("spark.sql.adaptive.enabled", "true")
+        .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
+        .config("spark.sql.adaptive.skewJoin.enabled", "true")
+        .getOrCreate()
+    )
 
     try:
         # Read the parquet file
@@ -39,7 +49,7 @@ def filter_pairs(input_path: str, output_path: str) -> None:
         filtered_df = pairs_df.filter(~F.col("source").startswith("Q"))
 
         # Remove duplicates based on key fields
-        duplicate_cols = ["left_name", "right_name", "left_category", "right_category", "match"]
+        duplicate_cols = ["left_name", "right_name"]
         before_dedup_count = filtered_df.count()
         filtered_df = filtered_df.dropDuplicates(duplicate_cols)
         after_dedup_count = filtered_df.count()

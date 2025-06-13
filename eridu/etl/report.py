@@ -17,11 +17,24 @@ def generate_pairs_report(parquet_path: str, truncate: int = 20) -> None:
         parquet_path: Path to the parquet file
         truncate: Truncation value for string display
     """
-    # Create Spark session
-    spark = SparkSession.builder.appName("Eridu ETL Report").getOrCreate()
+    # Create Spark session with proper memory configuration
+    spark = (
+        SparkSession.builder.appName("Eridu ETL Report")
+        .config("spark.driver.memory", "16g")
+        .config("spark.driver.maxResultSize", "8g")
+        .config("spark.sql.execution.arrow.maxRecordsPerBatch", "10000")
+        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+        .config("spark.sql.adaptive.enabled", "true")
+        .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
+        .config("spark.sql.adaptive.skewJoin.enabled", "true")
+        .getOrCreate()
+    )
 
     # Load the data
     pairs_df = spark.read.parquet(parquet_path)
+
+    # Repartition the data or we get Java heap space errors
+    pairs_df = pairs_df.repartition(100)
 
     # Show basic info
     print(f"Total records: {pairs_df.count():,}")
@@ -72,38 +85,47 @@ def generate_pairs_report(parquet_path: str, truncate: int = 20) -> None:
 
     # Check for duplicates based on key fields
     print("\n=== Duplicate Analysis ===")
-    duplicate_cols = ["left_name", "right_name", "left_category", "right_category", "match"]
+    duplicate_cols = ["left_name", "right_name"]
+
+    # Repartition again...
+    pairs_df = pairs_df.repartition(1000)
 
     # Count total records
-    total_records = pairs_df.count()
+    total_records: int = pairs_df.count()
+    print(f"Total records: {total_records:,}")
+    if total_records == 0:
+        raise ValueError("No records found.")
 
     # Count unique records based on the key fields
     unique_records = pairs_df.select(*duplicate_cols).distinct().count()
+    print(f"Unique records (by {', '.join(duplicate_cols)}): {unique_records:,}")
 
     # Calculate duplicates
     duplicate_count = total_records - unique_records
-    duplicate_pct = (duplicate_count / total_records * 100) if total_records > 0 else 0
-
-    print(f"Total records: {total_records:,}")
-    print(f"Unique records (by {', '.join(duplicate_cols)}): {unique_records:,}")
+    duplicate_pct = (duplicate_count / total_records * 100) if total_records > 0 else 0.0
     print(f"Duplicate records: {duplicate_count:,} ({duplicate_pct:.1f}%)")
 
     # Show examples of duplicated records
     if duplicate_count > 0:
         print("\n=== Duplicate Examples ===")
         # Group by the key fields and show records that appear more than once
+        # Limit and cache to avoid memory issues
         duplicated_df = (
             pairs_df.groupBy(*duplicate_cols)
             .count()
             .filter(F.col("count") > 1)
             .orderBy(F.col("count").desc())
+            .limit(1000)  # Limit to top 1000 duplicate patterns
+            .cache()
         )
 
-        print(f"Unique duplicate patterns: {duplicated_df.count():,}")
+        # Force computation and get count
+        duplicated_count = duplicated_df.count()
+        print(f"Top duplicate patterns found: {duplicated_count:,}")
         duplicated_df.show(10, truncate=False)
 
         # Show actual duplicate records for the top pattern
-        if duplicated_df.count() > 0:
+        if duplicated_count > 0:
             top_duplicate = duplicated_df.first()
             if top_duplicate is not None:
                 print(
@@ -112,10 +134,9 @@ def generate_pairs_report(parquet_path: str, truncate: int = 20) -> None:
                 sample_duplicates = pairs_df.filter(
                     (F.col("left_name") == top_duplicate["left_name"])
                     & (F.col("right_name") == top_duplicate["right_name"])
-                    & (F.col("left_category") == top_duplicate["left_category"])
-                    & (F.col("right_category") == top_duplicate["right_category"])
-                    & (F.col("match") == top_duplicate["match"])
-                )
+                ).limit(
+                    5
+                )  # Limit to 5 sample records
                 sample_duplicates.show(truncate=False)
 
     spark.stop()
