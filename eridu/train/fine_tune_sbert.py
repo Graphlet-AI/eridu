@@ -5,7 +5,7 @@ import os
 import random
 import sys
 import warnings
-from typing import Any, List
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -34,7 +34,6 @@ import wandb
 from eridu.train.callbacks import ResamplingCallback
 from eridu.train.dataset import ResamplingDataset
 from eridu.train.loss import ContextAdaptiveContrastiveLoss
-from eridu.train.utils import compute_classifier_metrics  # noqa: F401
 from eridu.train.utils import (
     compute_sbert_metrics,
     sbert_compare,
@@ -428,7 +427,7 @@ sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingAr
 )
 
 # Prepare the callbacks (WandbCallback is automatically added by SentenceTransformerTrainer when wandb is initialized)
-callbacks: List[TrainerCallback] = [
+callbacks: list[TrainerCallback] = [
     EarlyStoppingCallback(early_stopping_patience=PATIENCE),
 ]
 
