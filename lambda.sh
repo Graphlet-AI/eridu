@@ -5,7 +5,7 @@
 #
 
 # What is the IP address of the Lambda Labs Ubuntu machine?
-export LAMBDA_IP="<IP>"
+export LAMBDA_IP="<YOUR_LAMBDA_IP_ADDRESS>"
 
 # Which region FS are we using?
 export LAMBDA_REGION_FS="default-us-east-1"
@@ -48,7 +48,7 @@ export PATH="${MINICONDA_HOME}/bin:${PATH}"
 conda init bash
 source ~/.bashrc
 
-# Create the project's environment
+# Create the project's _environment_
 conda create -n eridu python=3.12 -y
 conda activate eridu
 

@@ -216,10 +216,10 @@ def etl_report(parquet_path: str, truncate: int) -> None:
     help="Learning rate for optimizer",
 )
 @click.option(
-    "--post-sample-size",
+    "--post-sample-pct",
     default=0.01,
     show_default=True,
-    help="Sample size for post-training evaluation",
+    help="Sample percentage for post-training evaluation",
 )
 def train(
     model: str,
@@ -240,7 +240,7 @@ def train(
     save_strategy: str,
     eval_strategy: str,
     learning_rate: float,
-    post_sample_size: float,
+    post_sample_pct: float,
 ) -> None:
     """Fine-tune a sentence transformer (SBERT) model for entity matching."""
     # Validate that FP16 and quantization are not both enabled
@@ -266,7 +266,7 @@ def train(
     click.echo(f"Save strategy: {save_strategy}")
     click.echo(f"Eval strategy: {eval_strategy}")
     click.echo(f"Learning rate: {learning_rate}")
-    click.echo(f"Post-sample size: {post_sample_size}")
+    click.echo(f"Post-sample percentage: {post_sample_pct}")
     click.echo(f"W&B Project: {wandb_project}")
     click.echo(f"W&B Entity: {wandb_entity}")
 
@@ -283,7 +283,7 @@ def train(
     os.environ["SAVE_STRATEGY"] = save_strategy
     os.environ["EVAL_STRATEGY"] = eval_strategy
     os.environ["LEARNING_RATE"] = str(learning_rate)
-    os.environ["POST_SAMPLE_SIZE"] = str(post_sample_size)
+    os.environ["POST_SAMPLE_PCT"] = str(post_sample_pct)
     os.environ["WANDB_PROJECT"] = wandb_project
     os.environ["WANDB_ENTITY"] = wandb_entity
     os.environ["USE_GPU"] = "true" if use_gpu else "false"
