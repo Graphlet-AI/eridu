@@ -29,7 +29,14 @@ class ContextAdaptiveContrastiveLoss(nn.Module):
         sent1 = sent1_dict["sentence_embedding"]  # (b, d)
         sent2 = sent2_dict["sentence_embedding"]  # (b, d)
 
-        local_diff = 1 - F.cosine_similarity(output1, output2, dim=-1).mean(dim=1)
+        # Handle different sequence lengths by truncating to the shorter length
+        min_length = min(output1.size(1), output2.size(1))
+        output1_truncated = output1[:, :min_length, :]  # (b, min_len, d)
+        output2_truncated = output2[:, :min_length, :]  # (b, min_len, d)
+
+        local_diff = 1 - F.cosine_similarity(output1_truncated, output2_truncated, dim=-1).mean(
+            dim=1
+        )
         global_diff = 1 - F.cosine_similarity(sent1, sent2)
 
         gate = torch.sigmoid(self.gate_scale * (global_diff - local_diff))
