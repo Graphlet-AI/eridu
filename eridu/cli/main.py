@@ -117,6 +117,26 @@ def etl_report(parquet_path: str, truncate: int) -> None:
     generate_pairs_report(parquet_path, truncate)
 
 
+@etl.command(name="filter")
+@click.option(
+    "--input-path",
+    default="./data/pairs-all.parquet",
+    show_default=True,
+    help="Path to the input Parquet file to filter",
+)
+@click.option(
+    "--output-path",
+    default="./data/filtered",
+    show_default=True,
+    help="Directory to save the filtered Parquet files",
+)
+def etl_filter(input_path: str, output_path: str) -> None:
+    """Filter entity pairs data to exclude sources starting with 'Q'."""
+    from eridu.etl.filter import filter_pairs
+
+    filter_pairs(input_path, output_path)
+
+
 @cli.command(name="train")
 @click.option(
     "--model",
