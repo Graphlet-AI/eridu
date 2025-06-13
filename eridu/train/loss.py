@@ -18,10 +18,16 @@ class ContextAdaptiveContrastiveLoss(nn.Module):
         self.gate_scale = gate_scale
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
-        output1 = self.model(sentence_features[0], output_value="token_embeddings")  # type: ignore  # (b, t, d)
-        output2 = self.model(sentence_features[1], output_value="token_embeddings")  # type: ignore
-        sent1 = self.model(sentence_features[0], output_value="sentence_embedding")  # type: ignore  # (b, d)
-        sent2 = self.model(sentence_features[1], output_value="sentence_embedding")  # type: ignore
+        output1_dict = self.model(sentence_features[0], output_value="token_embeddings")  # type: ignore
+        output2_dict = self.model(sentence_features[1], output_value="token_embeddings")  # type: ignore
+        sent1_dict = self.model(sentence_features[0], output_value="sentence_embedding")  # type: ignore
+        sent2_dict = self.model(sentence_features[1], output_value="sentence_embedding")  # type: ignore
+
+        # Extract tensors from the returned dictionaries
+        output1 = output1_dict["token_embeddings"]  # (b, t, d)
+        output2 = output2_dict["token_embeddings"]  # (b, t, d)
+        sent1 = sent1_dict["sentence_embedding"]  # (b, d)
+        sent2 = sent2_dict["sentence_embedding"]  # (b, d)
 
         local_diff = 1 - F.cosine_similarity(output1, output2, dim=-1).mean(dim=1)
         global_diff = 1 - F.cosine_similarity(sent1, sent2)

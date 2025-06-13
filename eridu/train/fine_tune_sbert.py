@@ -29,7 +29,6 @@ from sklearn.metrics import (  # type: ignore
 )
 from sklearn.model_selection import train_test_split  # type: ignore
 from transformers import EarlyStoppingCallback, TrainerCallback
-from transformers.integrations import WandbCallback
 
 import wandb
 from eridu.train.callbacks import ResamplingCallback
@@ -428,10 +427,9 @@ sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingAr
     optim=OPTIMIZER,
 )
 
-# Prepare the callbacks
+# Prepare the callbacks (WandbCallback is automatically added by SentenceTransformerTrainer when wandb is initialized)
 callbacks: List[TrainerCallback] = [
     EarlyStoppingCallback(early_stopping_patience=PATIENCE),
-    WandbCallback(),
 ]
 
 # Add resampling callback if resampling is enabled
