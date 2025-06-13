@@ -12,6 +12,7 @@ import requests
 from tqdm import tqdm
 
 from eridu.etl import evaluate as evaluate_module
+from eridu.etl.filter import filter_pairs
 
 
 class OrderedGroup(click.Group):
@@ -119,22 +120,25 @@ def etl_report(parquet_path: str, truncate: int) -> None:
 
 @etl.command(name="filter")
 @click.option(
+    "--input",
     "--input-path",
     default="./data/pairs-all.parquet",
+    type=click.Path(exists=True, dir_okay=True, readable=True),
     show_default=True,
     help="Path to the input Parquet file to filter",
 )
 @click.option(
+    "--output",
     "--output-path",
     default="./data/filtered",
+    type=click.Path(dir_okay=True, writable=True),
     show_default=True,
     help="Directory to save the filtered Parquet files",
 )
-def etl_filter(input_path: str, output_path: str) -> None:
+def etl_filter(input: str, output: str) -> None:
     """Filter entity pairs data to exclude sources starting with 'Q'."""
-    from eridu.etl.filter import filter_pairs
 
-    filter_pairs(input_path, output_path)
+    filter_pairs(input, output)
 
 
 @cli.command(name="train")
