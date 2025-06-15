@@ -35,7 +35,8 @@
             "Bash(grep:*)",
             "Bash(grep -n:*)",
             "Bash(echo -ne '\007')",
-            "Write(file_path:*/__init__.py)"
+            "Write(file_path:*/__init__.py)",
+            "WebFetch(*)"
         ],
         "deny": [
             "Bash(pip install:*)"
