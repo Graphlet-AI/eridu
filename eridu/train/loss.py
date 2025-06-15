@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import typing
 from collections.abc import Iterable
 
@@ -7,6 +8,8 @@ import torch
 import torch.nn.functional as F
 from sentence_transformers.SentenceTransformer import SentenceTransformer
 from torch import Tensor, nn
+
+GATE_STATS_STEPS = int(os.getenv("GATE_STATS_STEPS", "100"))
 
 
 class ContextAdaptiveContrastiveLoss(nn.Module):
@@ -44,7 +47,7 @@ class ContextAdaptiveContrastiveLoss(nn.Module):
         final_diff = gate * global_diff + (1 - gate) * local_diff
 
         # Log every 100 forward passes
-        if typing.cast(int, self.call_count) % 100 == 0:
+        if typing.cast(int, self.call_count) % GATE_STATS_STEPS == 0:
             print(
                 f"Step {self.call_count} - Gate stats: mean={gate.mean():.3f}, std={gate.std():.3f}"
             )
