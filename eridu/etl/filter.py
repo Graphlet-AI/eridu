@@ -55,7 +55,9 @@ def filter_pairs(input_path: str, output_path: str) -> None:
         after_dedup_count = filtered_df.count()
 
         click.echo(f"Removed {before_dedup_count - after_dedup_count:,} duplicate records")
-        click.echo(f"Records after deduplication: {after_dedup_count:,}")
+        click.echo(
+            f"Records after left_name / right_name df.dropDuplicates() deduplication: {after_dedup_count:,}"
+        )
 
         # Show final filtered count (after both source filter and deduplication)
         filtered_count = filtered_df.count()

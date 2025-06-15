@@ -1,18 +1,27 @@
 """Main CLI module for Eridu."""
 
 import os
+import warnings
 from collections import OrderedDict
 from importlib import import_module
 from pathlib import Path
 from typing import Optional
 
-import click
-import pandas as pd
-import requests
-from tqdm import tqdm
+# Suppress SyntaxWarnings from HDBSCAN library
+warnings.filterwarnings("ignore", category=SyntaxWarning)
 
-from eridu.etl import evaluate as evaluate_module
-from eridu.etl.filter import filter_pairs
+import click  # noqa: E402
+import pandas as pd  # noqa: E402
+import requests  # noqa: E402
+from tqdm import tqdm  # noqa: E402
+
+from eridu.etl import evaluate as evaluate_module  # noqa: E402
+from eridu.etl.analyze import (  # noqa: E402
+    analyze_cluster_quality,
+    analyze_cluster_results,
+)
+from eridu.etl.cluster import cluster_names  # noqa: E402
+from eridu.etl.filter import filter_pairs  # noqa: E402
 
 
 class OrderedGroup(click.Group):
@@ -34,7 +43,7 @@ def cli() -> None:
     pass
 
 
-@cli.command()
+@cli.command(context_settings={"show_default": True})
 @click.option(
     "--url",
     default="https://storage.googleapis.com/data.opensanctions.org/contrib/sample/pairs-all.csv.gz",
@@ -98,7 +107,7 @@ def etl() -> None:
     pass
 
 
-@etl.command(name="report")
+@etl.command(name="report", context_settings={"show_default": True})
 @click.option(
     "--parquet-path",
     default="./data/pairs-all.parquet",
@@ -118,7 +127,7 @@ def etl_report(parquet_path: str, truncate: int) -> None:
     generate_pairs_report(parquet_path, truncate)
 
 
-@etl.command(name="filter")
+@etl.command(name="filter", context_settings={"show_default": True})
 @click.option(
     "--input",
     "--input-path",
@@ -141,7 +150,116 @@ def etl_filter(input: str, output: str) -> None:
     filter_pairs(input, output)
 
 
-@cli.command(name="train")
+@cli.group(context_settings={"show_default": True})
+def cluster() -> None:
+    """Clustering commands for name entity resolution."""
+    pass
+
+
+@cluster.command(name="compute", context_settings={"show_default": True})
+@click.option(
+    "--input",
+    "--input-path",
+    default="./data/pairs-all.parquet",
+    type=click.Path(exists=True, dir_okay=True, readable=True),
+    help="Path to the input Parquet file containing names to cluster",
+)
+@click.option(
+    "--output-dir",
+    default="./images",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True),
+    help="Directory to save the visualization PNG file",
+)
+@click.option(
+    "--model",
+    default="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    help="Sentence transformer model to use for embeddings",
+)
+@click.option(
+    "--sample-size",
+    default=None,
+    type=int,
+    help="Number of names to sample for clustering (use all names if not specified)",
+)
+@click.option(
+    "--min-cluster-size",
+    default=5,
+    help="Minimum cluster size for HDBSCAN clustering",
+)
+@click.option(
+    "--min-samples",
+    default=3,
+    help="Minimum samples parameter for HDBSCAN clustering",
+)
+@click.option(
+    "--cluster-selection-epsilon",
+    default=0.1,
+    type=float,
+    help="HDBSCAN epsilon for cluster selection (higher values = more noise points)",
+)
+@click.option(
+    "--use-gpu/--no-gpu",
+    default=True,
+    help="Whether to use GPU acceleration for embeddings",
+)
+@click.option(
+    "--random-seed",
+    default=31337,
+    help="Random seed for reproducibility",
+)
+def cluster_compute(
+    input: str,
+    output_dir: str,
+    model: str,
+    sample_size: Optional[int],
+    min_cluster_size: int,
+    min_samples: int,
+    cluster_selection_epsilon: float,
+    use_gpu: bool,
+    random_seed: int,
+) -> None:
+    """Compute clusters using HDBSCAN on original embeddings, with T-SNE for visualization."""
+    cluster_names(
+        input_path=input,
+        output_dir=output_dir,
+        model_name=model,
+        sample_size=sample_size,
+        min_cluster_size=min_cluster_size,
+        min_samples=min_samples,
+        cluster_selection_epsilon=cluster_selection_epsilon,
+        use_gpu=use_gpu,
+        random_seed=random_seed,
+    )
+
+
+@cluster.command(name="analyze", context_settings={"show_default": True})
+@click.option(
+    "--csv-path",
+    default="./images/cluster_results.csv",
+    type=click.Path(exists=True, dir_okay=False, readable=True),
+    help="Path to the cluster results CSV file from compute command",
+)
+def cluster_analyze(csv_path: str) -> None:
+    """Analyze clustering results and show examples of names in each cluster."""
+    # Analyze the cluster results
+    analyze_cluster_results(csv_path)
+
+
+@cluster.command(name="quality", context_settings={"show_default": True})
+@click.option(
+    "--csv-path",
+    default="./images/cluster_results.csv",
+    type=click.Path(exists=True, dir_okay=False, readable=True),
+    help="Path to the cluster results CSV file from compute command",
+)
+def cluster_quality(csv_path: str) -> None:
+    """Analyze cluster quality using distance metrics."""
+    # Load the cluster results and analyze quality
+    df = pd.read_csv(csv_path)
+    analyze_cluster_quality(df)
+
+
+@cli.command(name="train", context_settings={"show_default": True})
 @click.option(
     "--model",
     default="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
@@ -374,7 +492,7 @@ def train(
     fine_tune_module.main()
 
 
-@cli.command()
+@cli.command("compare", context_settings={"show_default": True})
 @click.argument("name1", type=str)
 @click.argument("name2", type=str)
 @click.option(
@@ -410,7 +528,7 @@ def compare(name1: str, name2: str, model_path: str, use_gpu: bool) -> None:
     click.echo(f"{similarity:.3f}")
 
 
-@cli.command()
+@cli.command("evaluate", context_settings={"show_default": True})
 @click.option(
     "--model-path",
     default=None,
