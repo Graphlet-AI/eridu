@@ -49,6 +49,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Git - Keep commit messsages straightforward and to the point - do not put extraneous details, simply summarize the work performed. Do not put anything in commit messages other than a description of the code changes. Do not put "Generated with [Claude Code](https://claude.ai/code)" or anything else relating to Claude or Anthropic.
 - Always use `context_settings={"show_default": True}` in Click commands to show default values in the help text.
 - Don't ever put defaults in Click descriptions, only describe what the option does. The default options are set via the `@click.command(context_settings={"show_default": True})` decorator of each Click command or group.
+- Always import modules at the top of the file, do not import them inside functions or classes.
 
 ## Alerts
 
