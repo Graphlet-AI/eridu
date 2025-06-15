@@ -35,6 +35,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Claude Logic
 
+- Find the root cause of an issue before figuring out a solution. Fix problems.
+- Do not create workarounds for issues without asking. Always find the root cause of an issue and fix it.
 - Command Line Interfaces - at the end of your coding tasks, please alter the 'eridu' CLI to accommodate the changes.
 - Separate logic from the CLI - separate the logic under `eridu` and sub-modules from the command line interface (CLI) code in `eridu.cli`. The CLI should only handle input/output from/to the user and should not contain any business logic. ETL code should go in `eridu.etl`, training code should go in `eridu.train` and neither should have logic in the CLI. The CLI should only call the ETL, training and other code and handle input/output.
 - Help strings - never put the default option values in the help strings. The help strings should only describe what the option does, not what the default value is. The default values are already documented in the `config.yml` file and will be printed via the `@click.command(context_settings={"show_default": True})` decorator of each Click command.
