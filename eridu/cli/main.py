@@ -27,7 +27,7 @@ class OrderedGroup(click.Group):
         return self.commands.keys()
 
 
-@click.group(cls=OrderedGroup)
+@click.group(cls=OrderedGroup, context_settings={"show_default": True})
 @click.version_option()
 def cli() -> None:
     """Eridu: Fuzzy matching people and company names for entity resolution using representation learning"""
@@ -92,7 +92,7 @@ def download(url: str, output_dir: str) -> None:
     click.echo(f"  eridu etl report --parquet-path {parquet_path}")
 
 
-@cli.group()
+@cli.group(context_settings={"show_default": True})
 def etl() -> None:
     """ETL commands for data processing."""
     pass
@@ -273,6 +273,12 @@ def etl_filter(input: str, output: str) -> None:
     show_default=True,
     help="Maximum gradient norm for gradient clipping to prevent exploding gradients",
 )
+@click.option(
+    "--gate-stats-steps",
+    default=100,
+    show_default=True,
+    help="Number of steps between logging loss metrics to WandB",
+)
 def train(
     model: str,
     input: str,
@@ -297,6 +303,7 @@ def train(
     learning_rate: float,
     post_sample_pct: float,
     max_grad_norm: float,
+    gate_stats_steps: int,
 ) -> None:
     """Fine-tune a sentence transformer (SBERT) model for entity matching."""
     # Validate that FP16 and quantization are not both enabled
@@ -327,6 +334,7 @@ def train(
     click.echo(f"Learning rate: {learning_rate}")
     click.echo(f"Post-sample percentage: {post_sample_pct}")
     click.echo(f"Max gradient norm: {max_grad_norm}")
+    click.echo(f"Gate stats steps: {gate_stats_steps}")
     click.echo(f"W&B Project: {wandb_project}")
     click.echo(f"W&B Entity: {wandb_entity}")
 
@@ -347,6 +355,7 @@ def train(
     os.environ["LEARNING_RATE"] = str(learning_rate)
     os.environ["POST_SAMPLE_PCT"] = str(post_sample_pct)
     os.environ["MAX_GRAD_NORM"] = str(max_grad_norm)
+    os.environ["GATE_STATS_STEPS"] = str(gate_stats_steps)
     os.environ["WANDB_PROJECT"] = wandb_project
     os.environ["WANDB_ENTITY"] = wandb_entity
     os.environ["USE_GPU"] = "true" if use_gpu else "false"

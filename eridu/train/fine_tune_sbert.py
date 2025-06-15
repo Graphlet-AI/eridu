@@ -17,7 +17,6 @@ from datasets import Dataset  # type: ignore
 from scipy.stats import iqr
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
 from sentence_transformers.evaluation import BinaryClassificationEvaluator
-from sentence_transformers.losses import OnlineContrastiveLoss
 from sentence_transformers.losses.ContrastiveLoss import SiameseDistanceMetric
 from sentence_transformers.model_card import SentenceTransformerModelCardData
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
@@ -35,6 +34,7 @@ from transformers import EarlyStoppingCallback, TrainerCallback
 import wandb
 from eridu.train.callbacks import ResamplingCallback
 from eridu.train.dataset import ResamplingDataset
+from eridu.train.loss import MetricsOnlineContrastiveLoss
 from eridu.train.utils import (
     compute_sbert_metrics,
     sbert_compare,
@@ -99,6 +99,7 @@ USE_GRADIENT_CHECKPOINTING: bool = (
 USE_RESAMPLING: bool = os.environ.get("USE_RESAMPLING", "True").lower() == "true"
 POST_SAMPLE_PCT: float = float(os.environ.get("POST_SAMPLE_PCT", "0.10"))
 MAX_GRAD_NORM: float = float(os.environ.get("MAX_GRAD_NORM", "1.0"))
+GATE_STATS_STEPS: int = int(os.environ.get("GATE_STATS_STEPS", "100"))
 
 # Get input path and data type from environment variables
 INPUT_PATH: str = os.environ.get("INPUT_PATH", "data/pairs-all.parquet")
@@ -398,11 +399,12 @@ wandb.log(
 # # This will effectively train the embedding model. MultipleNegativesRankingLoss did not work.
 # loss: losses.ContrastiveLoss = losses.ContrastiveLoss(model=sbert_model)
 
-# These are default arguments for OnlineContrastiveLoss
-loss: OnlineContrastiveLoss = OnlineContrastiveLoss(
+# Use MetricsOnlineContrastiveLoss for detailed loss tracking
+loss: MetricsOnlineContrastiveLoss = MetricsOnlineContrastiveLoss(
     model=sbert_model,
     margin=0.5,  # Margin for contrastive loss
     distance_metric=SiameseDistanceMetric.COSINE_DISTANCE,
+    gate_stats_steps=GATE_STATS_STEPS,
 )
 
 # loss: ContextAdaptiveContrastiveLoss = ContextAdaptiveContrastiveLoss(
