@@ -255,8 +255,6 @@ sbert_model: SentenceTransformer = SentenceTransformer(
         model_name=f"{SBERT_MODEL}-name-matcher-{VARIANT}",
     ),
 )
-
-
 if USE_GRADIENT_CHECKPOINTING:
     sbert_model.gradient_checkpointing_enable()
     logger.debug("Gradient checkpointing enabled to save memory")
