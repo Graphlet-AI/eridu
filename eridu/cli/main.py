@@ -150,7 +150,7 @@ def etl_filter(input: str, output: str) -> None:
     filter_pairs(input, output)
 
 
-@cli.group(context_settings={"show_default": True})
+@cli.group(cls=OrderedGroup, context_settings={"show_default": True})
 def cluster() -> None:
     """Clustering commands for name entity resolution."""
     pass
