@@ -17,6 +17,8 @@ from datasets import Dataset  # type: ignore
 from scipy.stats import iqr
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
 from sentence_transformers.evaluation import BinaryClassificationEvaluator
+from sentence_transformers.losses import OnlineContrastiveLoss
+from sentence_transformers.losses.ContrastiveLoss import SiameseDistanceMetric
 from sentence_transformers.model_card import SentenceTransformerModelCardData
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sklearn.metrics import (  # type: ignore
@@ -33,7 +35,6 @@ from transformers import EarlyStoppingCallback, TrainerCallback
 import wandb
 from eridu.train.callbacks import ResamplingCallback
 from eridu.train.dataset import ResamplingDataset
-from eridu.train.loss import ContextAdaptiveContrastiveLoss
 from eridu.train.utils import (
     compute_sbert_metrics,
     sbert_compare,
@@ -68,7 +69,7 @@ pd.set_option("display.max_rows", 40)
 pd.set_option("display.max_columns", None)
 
 # Configure sample size and model training parameters from environment or defaults
-SAMPLE_FRACTION: float = float(os.environ.get("SAMPLE_FRACTION", "0.01"))
+SAMPLE_FRACTION: float = float(os.environ.get("SAMPLE_FRACTION", "0.1"))
 SBERT_MODEL: str = os.environ.get(
     "SBERT_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 )
@@ -89,10 +90,15 @@ SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
 SAVE_EVAL_STEPS: int = int(os.environ.get("SAVE_EVAL_STEPS", "100"))
 USE_FP16: bool = os.environ.get("USE_FP16", "False").lower() == "true"
 USE_QUANTIZATION: bool = os.environ.get("USE_QUANTIZATION", "False").lower() == "true"
+# Enable gradient checkpointing to save memory if requested
+USE_GRADIENT_CHECKPOINTING: bool = (
+    os.environ.get("USE_GRADIENT_CHECKPOINTING", "false").lower() == "true"
+)
 
 # Enable resampling of training data for each epoch when sample fraction < 1.0
 USE_RESAMPLING: bool = os.environ.get("USE_RESAMPLING", "True").lower() == "true"
-POST_SAMPLE_PCT: float = float(os.environ.get("POST_SAMPLE_PCT", 0.01))
+POST_SAMPLE_PCT: float = float(os.environ.get("POST_SAMPLE_PCT", "0.10"))
+MAX_GRAD_NORM: float = float(os.environ.get("MAX_GRAD_NORM", "1.0"))
 
 # Get input path and data type from environment variables
 INPUT_PATH: str = os.environ.get("INPUT_PATH", "data/pairs-all.parquet")
@@ -126,6 +132,7 @@ wandb.init(
         "weight_decay": WEIGHT_DECAY,
         "random_seed": RANDOM_SEED,
         "warmup_ratio": WARMUP_RATIO,
+        "max_grad_norm": MAX_GRAD_NORM,
         "save_strategy": os.environ.get("SAVE_STRATEGY", "epoch"),
         "eval_strategy": os.environ.get("EVAL_STRATEGY", "epoch"),
         "sbert_model": SBERT_MODEL,
@@ -248,10 +255,8 @@ sbert_model: SentenceTransformer = SentenceTransformer(
         model_name=f"{SBERT_MODEL}-name-matcher-{VARIANT}",
     ),
 )
-# Enable gradient checkpointing to save memory if requested
-USE_GRADIENT_CHECKPOINTING: bool = (
-    os.environ.get("USE_GRADIENT_CHECKPOINTING", "false").lower() == "true"
-)
+
+
 if USE_GRADIENT_CHECKPOINTING:
     sbert_model.gradient_checkpointing_enable()
     logger.debug("Gradient checkpointing enabled to save memory")
@@ -395,18 +400,18 @@ wandb.log(
 # # This will effectively train the embedding model. MultipleNegativesRankingLoss did not work.
 # loss: losses.ContrastiveLoss = losses.ContrastiveLoss(model=sbert_model)
 
-# # These are default arguments for OnlineContrastiveLoss
-# loss: losses.OnlineContrastiveLoss = losses.OnlineContrastiveLoss(
-#     model=sbert_model,
-#     margin=0.5,  # Margin for contrastive loss
-#     distance_metric=SiameseDistanceMetric.COSINE_DISTANCE,
-# )
-
-loss: ContextAdaptiveContrastiveLoss = ContextAdaptiveContrastiveLoss(
+# These are default arguments for OnlineContrastiveLoss
+loss: OnlineContrastiveLoss = OnlineContrastiveLoss(
     model=sbert_model,
     margin=0.5,  # Margin for contrastive loss
-    gate_scale=5.0,  # Scale for the gate function
+    distance_metric=SiameseDistanceMetric.COSINE_DISTANCE,
 )
+
+# loss: ContextAdaptiveContrastiveLoss = ContextAdaptiveContrastiveLoss(
+#     model=sbert_model,
+#     margin=0.5,  # Margin for contrastive loss
+#     gate_scale=5.0,  # Scale for the gate function
+# )
 
 # Set lots of options to reduce memory usage and improve training speed
 sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingArguments(
@@ -431,6 +436,7 @@ sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingAr
     weight_decay=WEIGHT_DECAY,
     gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
     gradient_checkpointing=USE_GRADIENT_CHECKPOINTING,
+    max_grad_norm=MAX_GRAD_NORM,
     optim=OPTIMIZER,
 )
 
@@ -556,6 +562,7 @@ results_test_df["correct_prediction"] = (
 )
 
 # Save test results to parquet in the same folder as the model
+os.makedirs(OUTPUT_PATH, exist_ok=True)
 results_path = os.path.join(OUTPUT_PATH, "test_results.parquet")
 results_test_df.to_parquet(results_path)
 print(f"Saved test results to {results_path}")

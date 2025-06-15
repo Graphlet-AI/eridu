@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import typing
 from collections.abc import Iterable
 
 import torch
@@ -10,7 +11,7 @@ from torch import Tensor, nn
 
 class ContextAdaptiveContrastiveLoss(nn.Module):
     def __init__(
-        self, model: SentenceTransformer, margin: float = 0.5, gate_scale: float = 5.0
+        self, model: SentenceTransformer, margin: float = 0.5, gate_scale: float = 1.0
     ) -> None:
         super().__init__()
         self.model = model
@@ -41,6 +42,16 @@ class ContextAdaptiveContrastiveLoss(nn.Module):
 
         gate = torch.sigmoid(self.gate_scale * (global_diff - local_diff))
         final_diff = gate * global_diff + (1 - gate) * local_diff
+
+        gate = torch.sigmoid(self.gate_scale * (global_diff - local_diff))
+
+        # Log every 100 forward passes
+        if typing.cast(int, self.call_count) % 100 == 0:
+            print(
+                f"Step {self.call_count} - Gate stats: mean={gate.mean():.3f}, std={gate.std():.3f}"
+            )
+            print(f"Global diff: mean={global_diff.mean():.3f}, std={global_diff.std():.3f}")
+            print(f"Local diff: mean={local_diff.mean():.3f}, std={local_diff.std():.3f}")
 
         pos_mask = labels == 1
         neg_mask = labels == 0

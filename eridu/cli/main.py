@@ -267,6 +267,12 @@ def etl_filter(input: str, output: str) -> None:
     show_default=True,
     help="Sample percentage for post-training evaluation",
 )
+@click.option(
+    "--max-grad-norm",
+    default=1.0,
+    show_default=True,
+    help="Maximum gradient norm for gradient clipping to prevent exploding gradients",
+)
 def train(
     model: str,
     input: str,
@@ -290,6 +296,7 @@ def train(
     eval_strategy: str,
     learning_rate: float,
     post_sample_pct: float,
+    max_grad_norm: float,
 ) -> None:
     """Fine-tune a sentence transformer (SBERT) model for entity matching."""
     # Validate that FP16 and quantization are not both enabled
@@ -319,6 +326,7 @@ def train(
     click.echo(f"Eval strategy: {eval_strategy}")
     click.echo(f"Learning rate: {learning_rate}")
     click.echo(f"Post-sample percentage: {post_sample_pct}")
+    click.echo(f"Max gradient norm: {max_grad_norm}")
     click.echo(f"W&B Project: {wandb_project}")
     click.echo(f"W&B Entity: {wandb_entity}")
 
@@ -338,6 +346,7 @@ def train(
     os.environ["EVAL_STRATEGY"] = eval_strategy
     os.environ["LEARNING_RATE"] = str(learning_rate)
     os.environ["POST_SAMPLE_PCT"] = str(post_sample_pct)
+    os.environ["MAX_GRAD_NORM"] = str(max_grad_norm)
     os.environ["WANDB_PROJECT"] = wandb_project
     os.environ["WANDB_ENTITY"] = wandb_entity
     os.environ["USE_GPU"] = "true" if use_gpu else "false"
