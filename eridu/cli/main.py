@@ -15,12 +15,12 @@ import pandas as pd  # noqa: E402
 import requests  # noqa: E402
 from tqdm import tqdm  # noqa: E402
 
+from eridu.cluster import cluster_names, cluster_names_neobert  # noqa: E402
 from eridu.etl import evaluate as evaluate_module  # noqa: E402
 from eridu.etl.analyze import (  # noqa: E402
     analyze_cluster_quality,
     analyze_cluster_results,
 )
-from eridu.etl.cluster import cluster_names  # noqa: E402
 from eridu.etl.filter import filter_pairs  # noqa: E402
 
 
@@ -156,7 +156,13 @@ def cluster() -> None:
     pass
 
 
-@cluster.command(name="compute", context_settings={"show_default": True})
+@cluster.group(cls=OrderedGroup, context_settings={"show_default": True})
+def compute() -> None:
+    """Compute clustering using different approaches."""
+    pass
+
+
+@compute.command(name="embed", context_settings={"show_default": True})
 @click.option(
     "--input",
     "--input-path",
@@ -213,7 +219,7 @@ def cluster() -> None:
     default=31337,
     help="Random seed for reproducibility",
 )
-def cluster_compute(
+def compute_embed(
     input: str,
     image_dir: str,
     output_dir: str,
@@ -225,7 +231,7 @@ def cluster_compute(
     use_gpu: bool,
     random_seed: int,
 ) -> None:
-    """Compute clusters using HDBSCAN on original embeddings, with T-SNE for visualization."""
+    """Compute clusters using HDBSCAN on sentence transformer embeddings, with T-SNE for visualization."""
     cluster_names(
         input_path=input,
         image_dir=image_dir,
@@ -236,6 +242,115 @@ def cluster_compute(
         min_samples=min_samples,
         cluster_selection_epsilon=cluster_selection_epsilon,
         use_gpu=use_gpu,
+        random_seed=random_seed,
+    )
+
+
+@compute.command(name="token", context_settings={"show_default": True})
+@click.option(
+    "--input",
+    "--input-path",
+    default="./data/pairs-all.parquet",
+    type=click.Path(exists=True, dir_okay=True, readable=True),
+    help="Path to the input Parquet file containing names to cluster",
+)
+@click.option(
+    "--image-dir",
+    default="./images",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True),
+    help="Directory to save the visualization PNG file",
+)
+@click.option(
+    "--output-dir",
+    default="./data",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True),
+    help="Directory to save CSV files and features",
+)
+@click.option(
+    "--model",
+    default="chandar-lab/NeoBERT",
+    help="NeoBERT model to use for tokenization",
+)
+@click.option(
+    "--sample-size",
+    default=None,
+    type=int,
+    help="Number of names to sample for clustering (use all names if not specified)",
+)
+@click.option(
+    "--min-cluster-size",
+    default=5,
+    help="Minimum cluster size for HDBSCAN clustering",
+)
+@click.option(
+    "--min-samples",
+    default=3,
+    help="Minimum samples parameter for HDBSCAN clustering",
+)
+@click.option(
+    "--cluster-selection-epsilon",
+    default=0.1,
+    type=float,
+    help="HDBSCAN epsilon for cluster selection (higher values = more noise points)",
+)
+@click.option(
+    "--max-features",
+    default=10000,
+    help="Maximum number of features for TF-IDF vectorizer",
+)
+@click.option(
+    "--min-df",
+    default=2,
+    help="Minimum document frequency for TF-IDF features",
+)
+@click.option(
+    "--max-df",
+    default=0.95,
+    type=float,
+    help="Maximum document frequency for TF-IDF features",
+)
+@click.option(
+    "--ngram-range",
+    default="1,3",
+    help="N-gram range for TF-IDF features (format: min,max)",
+)
+@click.option(
+    "--random-seed",
+    default=31337,
+    help="Random seed for reproducibility",
+)
+def compute_token(
+    input: str,
+    image_dir: str,
+    output_dir: str,
+    model: str,
+    sample_size: Optional[int],
+    min_cluster_size: int,
+    min_samples: int,
+    cluster_selection_epsilon: float,
+    max_features: int,
+    min_df: int,
+    max_df: float,
+    ngram_range: str,
+    random_seed: int,
+) -> None:
+    """Cluster names using traditional NLP approach with NeoBERT tokenization and TF-IDF."""
+    # Parse ngram_range from string
+    ngram_min, ngram_max = map(int, ngram_range.split(","))
+
+    cluster_names_neobert(
+        input_path=input,
+        image_dir=image_dir,
+        output_dir=output_dir,
+        model_name=model,
+        sample_size=sample_size,
+        min_cluster_size=min_cluster_size,
+        min_samples=min_samples,
+        cluster_selection_epsilon=cluster_selection_epsilon,
+        max_features=max_features,
+        min_df=min_df,
+        max_df=max_df,
+        ngram_range=(ngram_min, ngram_max),
         random_seed=random_seed,
     )
 
