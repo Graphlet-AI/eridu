@@ -134,7 +134,8 @@ def _compute_distance_metrics(
 
 def cluster_names(  # noqa: C901
     input_path: str,
-    output_dir: str = "./images",
+    image_dir: str = "./images",
+    output_dir: str = "./data",
     model_name: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
     sample_size: Optional[int] = None,
     min_cluster_size: int = 5,
@@ -149,8 +150,10 @@ def cluster_names(  # noqa: C901
     ----------
     input_path : str
         Path to the input Parquet file containing names to cluster
-    output_dir : str, optional
+    image_dir : str, optional
         Directory to save the visualization PNG file, by default "./images"
+    output_dir : str, optional
+        Directory to save the CSV files and embeddings, by default "./data"
     model_name : str, optional
         Name of the sentence transformer model to use for embeddings
     sample_size : Optional[int], optional
@@ -279,7 +282,10 @@ def cluster_names(  # noqa: C901
         if col not in ["name", "index"]:
             results_df[col] = distance_df[col]
 
-    # Create output directory
+    # Create output directories
+    image_path = Path(image_dir)
+    image_path.mkdir(parents=True, exist_ok=True)
+
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -337,9 +343,9 @@ def cluster_names(  # noqa: C901
     plt.tight_layout()
 
     # Save the plot
-    output_file = output_path / "name_clusters.png"
-    plt.savefig(output_file, dpi=300, bbox_inches="tight")
-    print(f"Visualization saved to: {output_file}")
+    image_file = image_path / "name_clusters.png"
+    plt.savefig(image_file, dpi=300, bbox_inches="tight")
+    print(f"Visualization saved to: {image_file}")
 
     # Save comprehensive results for embedding exploration
     csv_file = output_path / "cluster_results.csv"

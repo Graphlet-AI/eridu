@@ -99,7 +99,7 @@ def _print_embedding_stats(df: pd.DataFrame) -> None:
         print()
 
 
-def analyze_cluster_results(csv_path: str = "images/cluster_results.csv") -> pd.DataFrame:
+def analyze_cluster_results(csv_path: str = "data/cluster_results.csv") -> pd.DataFrame:
     """Analyze cluster results and show examples of names in each cluster."""
     # Load the cluster results
     df = pd.read_csv(csv_path)

@@ -165,10 +165,16 @@ def cluster() -> None:
     help="Path to the input Parquet file containing names to cluster",
 )
 @click.option(
-    "--output-dir",
+    "--image-dir",
     default="./images",
     type=click.Path(file_okay=False, dir_okay=True, writable=True),
     help="Directory to save the visualization PNG file",
+)
+@click.option(
+    "--output-dir",
+    default="./data",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True),
+    help="Directory to save CSV files and embeddings",
 )
 @click.option(
     "--model",
@@ -209,6 +215,7 @@ def cluster() -> None:
 )
 def cluster_compute(
     input: str,
+    image_dir: str,
     output_dir: str,
     model: str,
     sample_size: Optional[int],
@@ -221,6 +228,7 @@ def cluster_compute(
     """Compute clusters using HDBSCAN on original embeddings, with T-SNE for visualization."""
     cluster_names(
         input_path=input,
+        image_dir=image_dir,
         output_dir=output_dir,
         model_name=model,
         sample_size=sample_size,
@@ -235,7 +243,7 @@ def cluster_compute(
 @cluster.command(name="analyze", context_settings={"show_default": True})
 @click.option(
     "--csv-path",
-    default="./images/cluster_results.csv",
+    default="./data/cluster_results.csv",
     type=click.Path(exists=True, dir_okay=False, readable=True),
     help="Path to the cluster results CSV file from compute command",
 )
@@ -248,7 +256,7 @@ def cluster_analyze(csv_path: str) -> None:
 @cluster.command(name="quality", context_settings={"show_default": True})
 @click.option(
     "--csv-path",
-    default="./images/cluster_results.csv",
+    default="./data/cluster_results.csv",
     type=click.Path(exists=True, dir_okay=False, readable=True),
     help="Path to the cluster results CSV file from compute command",
 )
