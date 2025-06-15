@@ -36,10 +36,12 @@
             "Bash(grep -n:*)",
             "Bash(echo -ne '\007')",
             "Write(file_path:*/__init__.py)",
-            "WebFetch(*)"
+            "WebFetch(*)",
+            "Bash(git mv:*)"
         ],
         "deny": [
-            "Bash(pip install:*)"
+            "Bash(pip install:*)",
+            "Bash(git add .)"
         ]
     },
     "dontCrawlDirectory": false,
