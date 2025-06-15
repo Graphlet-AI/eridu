@@ -31,6 +31,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Logging: Use logging for error handling, avoid print statements
 - Documentation: Use Sphinx for documentation, include docstrings in all public functions/classes
 - Code style: Follow PEP 8 for Python code style, use flake8 for linting
+- Always put spaces around operators and variables, e.g. `x = 1 + 2`, not `x=1+2`
 
 ## Claude Logic
 
