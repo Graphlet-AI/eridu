@@ -43,8 +43,6 @@ class ContextAdaptiveContrastiveLoss(nn.Module):
         gate = torch.sigmoid(self.gate_scale * (global_diff - local_diff))
         final_diff = gate * global_diff + (1 - gate) * local_diff
 
-        gate = torch.sigmoid(self.gate_scale * (global_diff - local_diff))
-
         # Log every 100 forward passes
         if typing.cast(int, self.call_count) % 100 == 0:
             print(
