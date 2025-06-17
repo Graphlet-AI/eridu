@@ -15,7 +15,7 @@ import pandas as pd  # noqa: E402
 import requests  # noqa: E402
 from tqdm import tqdm  # noqa: E402
 
-from eridu.cluster import cluster_names, cluster_names_neobert  # noqa: E402
+from eridu.cluster import cluster_names, cluster_names_bert  # noqa: E402
 from eridu.etl import evaluate as evaluate_module  # noqa: E402
 from eridu.etl.analyze import (  # noqa: E402
     analyze_cluster_quality,
@@ -268,8 +268,8 @@ def compute_embed(
 )
 @click.option(
     "--model",
-    default="chandar-lab/NeoBERT",
-    help="NeoBERT model to use for tokenization",
+    default="bert-base-uncased",
+    help="BERT model to use for tokenization",
 )
 @click.option(
     "--sample-size",
@@ -334,11 +334,11 @@ def compute_token(
     ngram_range: str,
     random_seed: int,
 ) -> None:
-    """Cluster names using traditional NLP approach with NeoBERT tokenization and TF-IDF."""
+    """Cluster names using traditional NLP approach with BERT tokenization and TF-IDF."""
     # Parse ngram_range from string
     ngram_min, ngram_max = map(int, ngram_range.split(","))
 
-    cluster_names_neobert(
+    cluster_names_bert(
         input_path=input,
         image_dir=image_dir,
         output_dir=output_dir,

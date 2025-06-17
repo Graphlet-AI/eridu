@@ -130,15 +130,15 @@ def _compute_distance_metrics(
     return distance_df
 
 
-def _tokenize_with_neobert(names: list[str], model_name: str = "chandar-lab/NeoBERT") -> list[str]:
-    """Tokenize names using NeoBERT tokenizer and return tokenized text."""
-    print(f"Loading NeoBERT tokenizer: {model_name}")
+def _tokenize_with_bert(names: list[str], model_name: str = "bert-base-uncased") -> list[str]:
+    """Tokenize names using BERT tokenizer and return tokenized text."""
+    print(f"Loading BERT tokenizer: {model_name}")
 
-    # Load the NeoBERT tokenizer
+    # Load the BERT tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     tokenized_names = []
-    print("Tokenizing names with NeoBERT...")
+    print("Tokenizing names with BERT...")
 
     for name in names:
         # Tokenize the name and convert tokens back to text
@@ -151,11 +151,11 @@ def _tokenize_with_neobert(names: list[str], model_name: str = "chandar-lab/NeoB
     return tokenized_names
 
 
-def cluster_names_neobert(  # noqa: C901
+def cluster_names_bert(  # noqa: C901
     input_path: str,
     image_dir: str = "./images",
     output_dir: str = "./data",
-    model_name: str = "chandar-lab/NeoBERT",
+    model_name: str = "bert-base-uncased",
     sample_size: Optional[int] = None,
     min_cluster_size: int = 5,
     min_samples: int = 3,
@@ -166,7 +166,7 @@ def cluster_names_neobert(  # noqa: C901
     ngram_range: tuple[int, int] = (1, 3),
     random_seed: int = 31337,
 ) -> None:
-    """Cluster names using traditional NLP approach with NeoBERT tokenization and TF-IDF.
+    """Cluster names using traditional NLP approach with BERT tokenization and TF-IDF.
 
     Parameters
     ----------
@@ -177,7 +177,7 @@ def cluster_names_neobert(  # noqa: C901
     output_dir : str, optional
         Directory to save the CSV files and features, by default "./data"
     model_name : str, optional
-        Name of the NeoBERT model to use for tokenization
+        Name of the BERT model to use for tokenization
     sample_size : Optional[int], optional
         Number of names to sample for clustering (None = use all), by default None
     min_cluster_size : int, optional
@@ -214,8 +214,8 @@ def cluster_names_neobert(  # noqa: C901
         unique_names = np.random.choice(unique_names, size=sample_size, replace=False)
         print(f"Sampled {len(unique_names):,} names for clustering")
 
-    # Tokenize names using NeoBERT
-    tokenized_names = _tokenize_with_neobert(unique_names.tolist(), model_name)
+    # Tokenize names using BERT
+    tokenized_names = _tokenize_with_bert(unique_names.tolist(), model_name)
 
     # Create TF-IDF features from tokenized text
     print("Creating TF-IDF features from tokenized names...")
@@ -342,7 +342,7 @@ def cluster_names_neobert(  # noqa: C901
             )
 
     plt.title(
-        f"NeoBERT + TF-IDF Name Clustering\\n{len(unique_names):,} names, {n_clusters} clusters, {n_noise} noise points"
+        f"BERT + TF-IDF Name Clustering\\n{len(unique_names):,} names, {n_clusters} clusters, {n_noise} noise points"
     )
     plt.xlabel("T-SNE Dimension 1")
     plt.ylabel("T-SNE Dimension 2")
@@ -363,24 +363,24 @@ def cluster_names_neobert(  # noqa: C901
     plt.tight_layout()
 
     # Save the plot
-    image_file = image_path / "neobert_clusters.png"
+    image_file = image_path / "bert_clusters.png"
     plt.savefig(image_file, dpi=300, bbox_inches="tight")
     print(f"Visualization saved to: {image_file}")
 
     # Save comprehensive results for feature exploration
-    csv_file = output_path / "neobert_cluster_results.csv"
+    csv_file = output_path / "bert_cluster_results.csv"
     results_df.to_csv(csv_file, index=False)
     print(f"Cluster results saved to: {csv_file}")
 
     # Save TF-IDF features as numpy array for feature exploration tools
-    features_file = output_path / "neobert_tfidf_features.npy"
+    features_file = output_path / "bert_tfidf_features.npy"
     np.save(features_file, features_dense)
     print(f"TF-IDF features saved to: {features_file}")
 
     # Save the TF-IDF vectorizer for potential reuse
     import pickle
 
-    vectorizer_file = output_path / "neobert_tfidf_vectorizer.pkl"
+    vectorizer_file = output_path / "bert_tfidf_vectorizer.pkl"
     with open(vectorizer_file, "wb") as f:
         pickle.dump(vectorizer, f)
     print(f"TF-IDF vectorizer saved to: {vectorizer_file}")
@@ -413,7 +413,7 @@ def cluster_names_neobert(  # noqa: C901
             )
 
     cluster_summary_df = pd.DataFrame(cluster_summary)
-    summary_file = output_path / "neobert_cluster_summary.csv"
+    summary_file = output_path / "bert_cluster_summary.csv"
     cluster_summary_df.to_csv(summary_file, index=False)
     print(f"Cluster summary saved to: {summary_file}")
 

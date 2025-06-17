@@ -64,7 +64,7 @@ version = "0.1.5"
 [tool.poetry.dependencies]
 python = "^3.12"
 ipython = "^9.0.2"
-numpy = "^2.2"
+numpy = "^2.0,<2.1"
 transformers = { version = "^4.51.3", extras = ["torch"] }
 sentence-transformers = { version = "^3.4.1", extras = ["torch"] }
 pandas = "^2.2.3"
@@ -80,6 +80,8 @@ pyspark = "^3.5.5"
 datasets = "^3.5.1"
 accelerate = "^1.6.0"
 hdbscan = "^0.8.40"
+numba = "^0.60.0"
+llvmlite = "^0.43.0"
 
 [tool.poetry.group.dev.dependencies]
 black = { version = "^25.1.0", extras = ["jupyter"] }
