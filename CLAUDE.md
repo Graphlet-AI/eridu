@@ -25,6 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Strings: Use double quotes for strings, use f-strings for string interpolation
 - Docstrings: Use Numpy style for docstrings, include type hints in docstrings
 - Comments: Use comments to explain complex code, avoid obvious comments
+- Tests: Don't make a class to contain unit tests. Just write the tests in pytest style.
 - Tests: Use pytest for testing, include type hints in test functions, use fixtures for setup/teardown. Don't create a class for each test file, use functions instead. Use fixtures to feed the tests data. Use `pytest.mark.parametrize` for parameterized tests.
 - Type hints: Use type hints for all function parameters and return types
 - Type checking: Use mypy for type checking, run mypy before committing code
@@ -53,7 +54,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Always use `context_settings={"show_default": True}` in Click commands to show default values in the help text.
 - Don't ever put defaults in Click descriptions, only describe what the option does. The default options are set via the `@click.command(context_settings={"show_default": True})` decorator of each Click command or group.
 - Always import modules at the top of the file, do not import them inside functions or classes.
+- Ask questions before mitigating a simple problem with a complex fix.
 
 ## Alerts
 
-- BEEP when you are done with something and prompt me, the user in your UI. I need to hear that you're done because I do more than one thing at once. Use the comand `echo -ne '\007'` to beep.
+- BEEP only ONCE when you are done with something and prompt me, the user in your UI. I need to hear that you're done because I do more than one thing at once. Use the command `echo -ne '\007'` to beep. Do not keep beeping multiple times or continuously. Just beep once when you are done with a task.
+- Use the applescript-mcp server to send me a message when you are done with something. Say "Done with task X" where X is the task you are done with. Alternatively, use the command `osascript -e 'tell application "System Events" to display dialog "Done with task X"'` to send me a message. Send only ONE alert, not multiple alerts.
