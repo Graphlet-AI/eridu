@@ -102,7 +102,7 @@ MAX_GRAD_NORM: float = float(os.environ.get("MAX_GRAD_NORM", "1.0"))
 GATE_STATS_STEPS: int = int(os.environ.get("GATE_STATS_STEPS", "100"))
 
 # Get input path and data type from environment variables
-INPUT_PATH: str = os.environ.get("INPUT_PATH", "data/pairs-all.parquet")
+INPUT_PATH: str = os.environ.get("INPUT_PATH", "data/filtered/companies.parquet")
 OUTPUT_PATH: str = os.environ.get("OUTPUT_PATH", "data/output")
 DATA_TYPE: str = os.environ.get("DATA_TYPE", "both")
 

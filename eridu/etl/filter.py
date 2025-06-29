@@ -70,20 +70,20 @@ def filter_pairs(input_path: str, output_path: str) -> None:
             filtered_df.filter(
                 (F.col("left_category") == "PER") & (F.col("right_category") == "PER")
             )
-            .unionAll(
-                filtered_df.filter(
-                    (F.col("left_category") == "PER")
-                    & (F.col("right_category") == "ORG")
-                    & (F.col("match") == 0)
-                )
-            )
-            .unionAll(
-                filtered_df.filter(
-                    (F.col("left_category") == "ORG")
-                    & (F.col("right_category") == "PER")
-                    & (F.col("match") == 0)
-                )
-            )
+            # .unionAll(
+            #     filtered_df.filter(
+            #         (F.col("left_category") == "PER")
+            #         & (F.col("right_category") == "ORG")
+            #         & (F.col("match") == 0)
+            #     )
+            # )
+            # .unionAll(
+            #     filtered_df.filter(
+            #         (F.col("left_category") == "ORG")
+            #         & (F.col("right_category") == "PER")
+            #         & (F.col("match") == 0)
+            #     )
+            # )
         )
         click.echo(f"Filtered people records count: {people_df.count():,}")
 
@@ -91,20 +91,20 @@ def filter_pairs(input_path: str, output_path: str) -> None:
             filtered_df.filter(
                 (F.col("left_category") == "ORG") & (F.col("right_category") == "ORG")
             )
-            .unionAll(
-                filtered_df.filter(
-                    (F.col("left_category") == "ORG")
-                    & (F.col("right_category") == "PER")
-                    & (F.col("match") == 0)
-                )
-            )
-            .unionAll(
-                filtered_df.filter(
-                    (F.col("left_category") == "PER")
-                    & (F.col("right_category") == "ORG")
-                    & (F.col("match") == 0)
-                )
-            )
+            # .unionAll(
+            #     filtered_df.filter(
+            #         (F.col("left_category") == "ORG")
+            #         & (F.col("right_category") == "PER")
+            #         & (F.col("match") == 0)
+            #     )
+            # )
+            # .unionAll(
+            #     filtered_df.filter(
+            #         (F.col("left_category") == "PER")
+            #         & (F.col("right_category") == "ORG")
+            #         & (F.col("match") == 0)
+            #     )
+            # )
         )
         click.echo(f"Filtered companies records count: {companies_df.count():,}")
 

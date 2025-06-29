@@ -382,6 +382,96 @@ def cluster_quality(csv_path: str) -> None:
     analyze_cluster_quality(df)
 
 
+@cluster.command(name="split", context_settings={"show_default": True})
+@click.option(
+    "--pairs-file",
+    default="./data/pairs-all.parquet",
+    show_default=True,
+    help="Path to the pairs file (CSV or Parquet)",
+)
+@click.option(
+    "--cluster-file",
+    default="./data/cluster_results.csv",
+    show_default=True,
+    help="Path to the cluster results CSV file",
+)
+@click.option(
+    "--output-dir",
+    default="./data/cluster_splits",
+    show_default=True,
+    help="Directory to save split files",
+)
+@click.option(
+    "--intra-threshold",
+    default=0.2,
+    type=float,
+    help="Intra-cluster distance threshold for tight clusters",
+)
+@click.option(
+    "--min-size",
+    default=5,
+    type=int,
+    help="Minimum cluster size for tight clusters",
+)
+@click.option(
+    "--train-ratio",
+    default=0.7,
+    type=float,
+    help="Training set ratio",
+)
+@click.option(
+    "--test-ratio",
+    default=0.2,
+    type=float,
+    help="Test set ratio",
+)
+@click.option(
+    "--eval-ratio",
+    default=0.1,
+    type=float,
+    help="Evaluation set ratio",
+)
+@click.option(
+    "--random-state",
+    default=42,
+    type=int,
+    help="Random seed for reproducibility",
+)
+def cluster_split(
+    pairs_file: str,
+    cluster_file: str,
+    output_dir: str,
+    intra_threshold: float,
+    min_size: int,
+    train_ratio: float,
+    test_ratio: float,
+    eval_ratio: float,
+    random_state: int,
+) -> None:
+    """Create cluster-aware train/test/eval splits to prevent overfitting.
+
+    This command ensures that tight clusters (groups of very similar names) are
+    placed entirely in one partition (train, test, or eval) rather than being
+    split across multiple partitions. This prevents overfitting by ensuring
+    the model cannot memorize cluster patterns during training.
+
+    Example: eridu cluster split --pairs-file data/pairs-all.parquet
+    """
+    from eridu.etl.cluster_split import create_cluster_aware_splits
+
+    create_cluster_aware_splits(
+        pairs_file=pairs_file,
+        cluster_file=cluster_file,
+        output_dir=output_dir,
+        intra_distance_threshold=intra_threshold,
+        min_cluster_size=min_size,
+        train_ratio=train_ratio,
+        test_ratio=test_ratio,
+        eval_ratio=eval_ratio,
+        random_state=random_state,
+    )
+
+
 @cli.command(name="train", context_settings={"show_default": True})
 @click.option(
     "--model",
