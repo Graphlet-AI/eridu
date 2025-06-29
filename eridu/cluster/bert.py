@@ -1,10 +1,12 @@
 """Traditional NLP clustering using NeoBERT tokenization and TF-IDF features."""
 
+# Save the TF-IDF vectorizer for potential reuse
+import pickle
 import warnings
 from pathlib import Path
 from typing import Optional
 
-import hdbscan  # type: ignore
+import cuml  # type: ignore
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -15,8 +17,6 @@ from sklearn.metrics.pairwise import cosine_distances  # type: ignore
 from sklearn.preprocessing import normalize  # type: ignore
 from transformers import AutoTokenizer
 
-# Suppress SyntaxWarnings from HDBSCAN library - these are from the library itself, not our code
-warnings.filterwarnings("ignore", category=SyntaxWarning)
 # Suppress sklearn deprecation warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="sklearn")
 
@@ -242,14 +242,15 @@ def cluster_names_bert(  # noqa: C901
 
     # Perform HDBSCAN clustering on normalized features
     print("Performing HDBSCAN clustering on TF-IDF features...")
-    clusterer = hdbscan.HDBSCAN(
+    clusterer = cuml.cluster.hdbscan.HDBSCAN(
         min_cluster_size=min_cluster_size,
         min_samples=min_samples,
-        metric="euclidean",  # Euclidean on normalized vectors approximates cosine distance
         cluster_selection_epsilon=cluster_selection_epsilon,
+        metric="euclidean",
+        prediction_data=True,
     )
-
     cluster_labels = clusterer.fit_predict(features_normalized)
+    print(f"HDBSCAN clustering completed. Labels shape: {cluster_labels.shape}")
 
     # Perform T-SNE dimension reduction to 2D for visualization only
     print("Performing T-SNE dimension reduction for visualization...")
@@ -257,7 +258,7 @@ def cluster_names_bert(  # noqa: C901
         n_components=2,
         random_state=random_seed,
         perplexity=min(30, len(unique_names) - 1),  # Adjust perplexity for small datasets
-        n_iter=1000,
+        max_iter=1000,
         verbose=1,
     )
 
@@ -274,17 +275,26 @@ def cluster_names_bert(  # noqa: C901
     print(f"  Clustered points: {len(cluster_labels) - n_noise}")
 
     # Create comprehensive results DataFrame for feature exploration
-    results_df = pd.DataFrame(
-        {
-            "name": unique_names,
-            "tokenized_name": tokenized_names,
-            "cluster": cluster_labels,
-            "x": features_2d[:, 0],
-            "y": features_2d[:, 1],
-            "cluster_probability": clusterer.probabilities_,  # HDBSCAN membership probability
-            "outlier_score": clusterer.outlier_scores_,  # HDBSCAN outlier scores
-        }
-    )
+    results_data = {
+        "name": unique_names,
+        "tokenized_name": tokenized_names,
+        "cluster": cluster_labels,
+        "x": features_2d[:, 0],
+        "y": features_2d[:, 1],
+    }
+
+    # Add HDBSCAN-specific attributes if available
+    if hasattr(clusterer, "probabilities_") and clusterer.probabilities_ is not None:
+        results_data["cluster_probability"] = clusterer.probabilities_
+    else:
+        results_data["cluster_probability"] = np.ones(len(unique_names))  # Default to 1.0
+
+    if hasattr(clusterer, "outlier_scores_") and clusterer.outlier_scores_ is not None:
+        results_data["outlier_score"] = clusterer.outlier_scores_
+    else:
+        results_data["outlier_score"] = np.zeros(len(unique_names))  # Default to 0.0
+
+    results_df = pd.DataFrame(results_data)
 
     # Add cluster size information
     cluster_sizes = results_df["cluster"].value_counts().to_dict()
@@ -376,9 +386,6 @@ def cluster_names_bert(  # noqa: C901
     features_file = output_path / "bert_tfidf_features.npy"
     np.save(features_file, features_dense)
     print(f"TF-IDF features saved to: {features_file}")
-
-    # Save the TF-IDF vectorizer for potential reuse
-    import pickle
 
     vectorizer_file = output_path / "bert_tfidf_vectorizer.pkl"
     with open(vectorizer_file, "wb") as f:

@@ -54,7 +54,7 @@ priority = "explicit"
 
 [project]
 name = "eridu"
-version = "0.1.5"
+version = "0.1.6"
 
 [tool.poetry.urls]
 "Company" = "https://graphlet.ai"

@@ -669,7 +669,15 @@ def compare(name1: str, name2: str, model_path: str, use_gpu: bool) -> None:
     type=float,
     help="Classification threshold (default: auto-determine optimal threshold)",
 )
-def evaluate(model_path: Optional[str], use_gpu: bool, threshold: Optional[float]) -> None:
+@click.option(
+    "--sample-size",
+    default=None,
+    type=int,
+    help="Number of test samples to evaluate (default: use all available test data)",
+)
+def evaluate(
+    model_path: Optional[str], use_gpu: bool, threshold: Optional[float], sample_size: Optional[int]
+) -> None:
     """Evaluate a trained SBERT model on the test dataset.
 
     Loads the model and test data, runs inference, and produces an evaluation report
@@ -678,7 +686,7 @@ def evaluate(model_path: Optional[str], use_gpu: bool, threshold: Optional[float
     Example: eridu evaluate
     """
     try:
-        evaluate_module.evaluate_and_print_report(model_path, use_gpu, threshold)
+        evaluate_module.evaluate_and_print_report(model_path, use_gpu, threshold, sample_size)
     except FileNotFoundError as e:
         click.echo(f"Error: {e}")
         click.echo("Make sure you've run 'eridu train' first to generate the model and test data.")

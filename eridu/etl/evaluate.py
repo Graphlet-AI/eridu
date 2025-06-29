@@ -233,7 +233,10 @@ def analyze_errors(
 
 
 def evaluate_and_print_report(
-    model_path: Optional[str] = None, use_gpu: bool = True, threshold: Optional[float] = None
+    model_path: Optional[str] = None,
+    use_gpu: bool = True,
+    threshold: Optional[float] = None,
+    sample_size: Optional[int] = None,
 ) -> Dict[str, Union[float, int]]:
     """Load model and test data, evaluate model, and print a report.
 
@@ -241,6 +244,7 @@ def evaluate_and_print_report(
         model_path: Path to model directory, or None to use default
         use_gpu: Whether to use GPU acceleration
         threshold: Optional classification threshold
+        sample_size: Optional number of test samples to evaluate (None = use all)
 
     Returns:
         Dictionary of evaluation metrics
@@ -250,6 +254,11 @@ def evaluate_and_print_report(
 
     # Load test data
     test_df = load_test_data(model_path)
+
+    # Sample test data if requested
+    if sample_size is not None and len(test_df) > sample_size:
+        print(f"Sampling {sample_size:,} test pairs from {len(test_df):,} available")
+        test_df = test_df.sample(n=sample_size, random_state=42)
 
     # Run inference to get similarity scores
     print(f"Running inference on {len(test_df):,} test pairs")
