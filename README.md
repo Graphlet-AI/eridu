@@ -294,9 +294,9 @@ eridu train --use-gpu \
             --save-strategy epoch \
             --eval-strategy epoch \
             --sample-fraction 1.0 \
-            --input data/filtered/people.parquet \
+            --input data/filtered/companies.parquet \
             --output data/output \
-            --data-type people
+            --data-type companies
 ```
 
 ## License
