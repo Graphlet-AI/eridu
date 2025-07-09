@@ -65,7 +65,7 @@ def download(url: str, output_dir: str) -> None:
     filename = url.split("/")[-1]
     gz_path = output_dir_path / filename
 
-    # Step 1: Download the file
+    # Step 1: Download the pairs file
     click.echo(f"Downloading {url} to {gz_path}")
     response = requests.get(url, stream=True)
     total_size = int(response.headers.get("content-length", 0))
@@ -77,7 +77,20 @@ def download(url: str, output_dir: str) -> None:
                     f.write(chunk)
                     pbar.update(len(chunk))
 
-    # Step 2: Read the gzipped CSV directly and convert to Parquet
+    # Step 2: Download checks.yml file
+    checks_url = "https://raw.githubusercontent.com/opensanctions/nomenklatura/refs/heads/main/contrib/name_benchmark/checks.yml"
+    checks_path = output_dir_path / "checks.yml"
+    click.echo(f"Downloading checks.yml to {checks_path}")
+
+    checks_response = requests.get(checks_url)
+    if checks_response.status_code == 200:
+        with open(checks_path, "w", encoding="utf-8") as f:
+            f.write(checks_response.text)
+        click.echo(f"Successfully downloaded checks.yml: {checks_path}")
+    else:
+        click.echo(f"Warning: Failed to download checks.yml (HTTP {checks_response.status_code})")
+
+    # Step 3: Read the gzipped CSV directly and convert to Parquet
     click.echo(f"Reading gzipped CSV file: {gz_path}")
     try:
         # Pandas automatically detects and handles gzipped files
