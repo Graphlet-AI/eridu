@@ -17,7 +17,6 @@ from datasets import Dataset  # type: ignore
 from scipy.stats import iqr
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
 from sentence_transformers.evaluation import BinaryClassificationEvaluator
-from sentence_transformers.losses.ContrastiveLoss import SiameseDistanceMetric
 from sentence_transformers.model_card import SentenceTransformerModelCardData
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sklearn.metrics import (  # type: ignore
@@ -34,7 +33,7 @@ from transformers import EarlyStoppingCallback, TrainerCallback
 import wandb
 from eridu.train.callbacks import ResamplingCallback
 from eridu.train.dataset import ResamplingDataset
-from eridu.train.loss import MetricsOnlineContrastiveLoss
+from eridu.train.loss import ContextAdaptiveContrastiveLoss
 from eridu.train.utils import (
     compute_sbert_metrics,
     sbert_compare,
@@ -285,34 +284,59 @@ if USE_QUANTIZATION:
 #
 
 print("\nTesting raw [un-fine-tuned] SBERT model:\n")
-examples: list[str | float | object] = []
-examples.append(
-    [
-        "John Smith",
-        "John Smith",
-        sbert_compare(sbert_model, "John Smith", "John Smith", use_gpu=True),
-    ]
+examples: list[list[str | float | bool]] = []
+
+name_pairs: list[dict[str, str | bool]] = [
+    {"sentence1": "Acme Corp.", "sentence2": "Acme Corporation", "similarity": True},
+    {
+        "sentence1": "Beta Technologies LLC",
+        "sentence2": "Beta Technologies, LLC",
+        "similarity": True,
+    },
+    {
+        "sentence1": "Global Solutions, Inc",
+        "sentence2": "Global Solutions Inc.",
+        "similarity": True,
+    },
+    {"sentence1": "Johnson & Johnson", "sentence2": "Johnson and Johnson", "similarity": True},
+    {"sentence1": "The Coca-Cola Company", "sentence2": "Coca Cola Co.", "similarity": True},
+    {"sentence1": "Acme Corp", "sentence2": "Acme Tools Inc.", "similarity": False},
+    {
+        "sentence1": "Alpha Capital LLC",
+        "sentence2": "Alpha Capital Partners LLC",
+        "similarity": False,
+    },
+    {
+        "sentence1": "Tech Innovations Inc.",
+        "sentence2": "Tech Innovation Inc.",
+        "similarity": False,
+    },
+    {"sentence1": "Sunrise Energy AG", "sentence2": "Sunrise Energy GmbH", "similarity": False},
+    {
+        "sentence1": "Future Holdings PLC",
+        "sentence2": "Future Holdings Limited",
+        "similarity": False,
+    },
+]
+
+for name_pair in name_pairs:
+    examples.append(
+        [
+            name_pair["sentence1"],
+            name_pair["sentence2"],
+            sbert_compare(
+                sbert_model,
+                str(name_pair["sentence1"]),
+                str(name_pair["sentence2"]),
+                use_gpu=True,
+            ),
+            name_pair["similarity"],
+        ]
+    )
+
+examples_df: pd.DataFrame = pd.DataFrame(
+    examples, columns=["sentence1", "sentence2", "similarity", "expected"]
 )
-examples.append(
-    [
-        "John Smith",
-        "John H. Smith",
-        sbert_compare(sbert_model, "John Smith", "John H. Smith", use_gpu=True),
-    ]
-)
-# Decent starting russian performance
-examples.append(
-    [
-        "Yevgeny Prigozhin",
-        "Евгений Пригожин",
-        sbert_compare(sbert_model, "Yevgeny Prigozhin", "Евгений Пригожин", use_gpu=True),
-    ]
-)
-# Poor starting chinese performance - can we improve?
-examples.append(
-    ["Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡", use_gpu=True)]
-)
-examples_df: pd.DataFrame = pd.DataFrame(examples, columns=["sentence1", "sentence2", "similarity"])
 print(str(examples_df) + "\n")
 
 #
@@ -321,6 +345,7 @@ print(str(examples_df) + "\n")
 
 # Use a simple approach for evaluation sampling - use the same sample fraction as for training
 sample_df: pd.DataFrame = eval_df.sample(frac=SAMPLE_FRACTION, random_state=RANDOM_SEED)
+
 # Make sure we have at least a few samples
 if len(sample_df) < 5 and len(eval_df) >= 5:
     sample_df = eval_df.sample(n=5, random_state=RANDOM_SEED)
@@ -399,19 +424,19 @@ wandb.log(
 # # This will effectively train the embedding model. MultipleNegativesRankingLoss did not work.
 # loss: losses.ContrastiveLoss = losses.ContrastiveLoss(model=sbert_model)
 
-# Use MetricsOnlineContrastiveLoss for detailed loss tracking
-loss: MetricsOnlineContrastiveLoss = MetricsOnlineContrastiveLoss(
-    model=sbert_model,
-    margin=0.5,  # Margin for contrastive loss
-    distance_metric=SiameseDistanceMetric.COSINE_DISTANCE,
-    gate_stats_steps=GATE_STATS_STEPS,
-)
-
-# loss: ContextAdaptiveContrastiveLoss = ContextAdaptiveContrastiveLoss(
+# # Use MetricsOnlineContrastiveLoss for detailed loss tracking
+# loss: MetricsOnlineContrastiveLoss = MetricsOnlineContrastiveLoss(
 #     model=sbert_model,
 #     margin=0.5,  # Margin for contrastive loss
-#     gate_scale=5.0,  # Scale for the gate function
+#     distance_metric=SiameseDistanceMetric.COSINE_DISTANCE,
+#     gate_stats_steps=GATE_STATS_STEPS,
 # )
+
+loss: ContextAdaptiveContrastiveLoss = ContextAdaptiveContrastiveLoss(
+    model=sbert_model,
+    margin=0.5,  # Margin for contrastive loss
+    gate_scale=5.0,  # Scale for the gate function
+)
 
 # Set lots of options to reduce memory usage and improve training speed
 sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingArguments(
@@ -477,35 +502,8 @@ print(f"Saved model to {SBERT_OUTPUT_FOLDER}")
 #
 
 print("\nTesting fine-tuned SBERT model:\n")
-tuned_examples: list[str | float | object] = []
-tuned_examples.append(
-    [
-        "John Smith",
-        "John Smith",
-        sbert_compare(sbert_model, "John Smith", "John Smith", use_gpu=True),
-    ]
-)
-tuned_examples.append(
-    [
-        "John Smith",
-        "John H. Smith",
-        sbert_compare(sbert_model, "John Smith", "John H. Smith", use_gpu=True),
-    ]
-)
-# Decent starting russian performance
-tuned_examples.append(
-    [
-        "Yevgeny Prigozhin",
-        "Евгений Пригожин",
-        sbert_compare(sbert_model, "Yevgeny Prigozhin", "Евгений Пригожин", use_gpu=True),
-    ]
-)
-# Poor starting chinese performance - can we improve?
-tuned_examples.append(
-    ["Ben Lorica", "罗瑞卡", sbert_compare(sbert_model, "Ben Lorica", "罗瑞卡", use_gpu=True)]
-)
 tuned_examples_df: pd.DataFrame = pd.DataFrame(
-    tuned_examples, columns=["sentence1", "sentence2", "similarity"]
+    examples, columns=["sentence1", "sentence2", "similarity", "expected"]
 )
 print(str(tuned_examples_df) + "\n")
 
