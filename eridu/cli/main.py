@@ -754,7 +754,13 @@ def compare(name1: str, name2: str, model_path: str, use_gpu: bool) -> None:
     click.echo(f"{similarity:.3f}")
 
 
-@cli.command("evaluate", context_settings={"show_default": True})
+@cli.group(cls=OrderedGroup, context_settings={"show_default": True})
+def evaluate() -> None:
+    """Evaluate trained models using different methods."""
+    pass
+
+
+@evaluate.command(name="test", context_settings={"show_default": True})
 @click.option(
     "--model-path",
     default=None,
@@ -778,7 +784,7 @@ def compare(name1: str, name2: str, model_path: str, use_gpu: bool) -> None:
     type=int,
     help="Number of test samples to evaluate (default: use all available test data)",
 )
-def evaluate(
+def evaluate_test(
     model_path: Optional[str], use_gpu: bool, threshold: Optional[float], sample_size: Optional[int]
 ) -> None:
     """Evaluate a trained SBERT model on the test dataset.
@@ -786,7 +792,7 @@ def evaluate(
     Loads the model and test data, runs inference, and produces an evaluation report
     with accuracy, precision, recall, F1 score, and other metrics.
 
-    Example: eridu evaluate
+    Example: eridu evaluate test
     """
     try:
         evaluate_module.evaluate_and_print_report(model_path, use_gpu, threshold, sample_size)
@@ -795,6 +801,46 @@ def evaluate(
         click.echo("Make sure you've run 'eridu train' first to generate the model and test data.")
     except Exception as e:
         click.echo(f"Error during evaluation: {e}")
+
+
+@evaluate.command(name="checks", context_settings={"show_default": True})
+@click.option(
+    "--checks-path",
+    default="./data/checks.yml",
+    show_default=True,
+    help="Path to the checks.yml file",
+)
+@click.option(
+    "--model-path",
+    default=None,
+    help="Path to the fine-tuned model directory (default: auto-detect based on environment)",
+)
+@click.option(
+    "--use-gpu/--no-gpu",
+    default=True,
+    show_default=True,
+    help="Whether to use GPU acceleration for evaluation",
+)
+@click.option(
+    "--threshold",
+    default=0.5,
+    type=float,
+    show_default=True,
+    help="Classification threshold for binary predictions",
+)
+def evaluate_checks(
+    checks_path: str, model_path: Optional[str], use_gpu: bool, threshold: float
+) -> None:
+    """Evaluate a trained SBERT model using checks.yml test cases.
+
+    Loads the model and checks.yml file, runs evaluation on both Person and Company
+    entity matching, and produces detailed reports with metrics and error examples.
+
+    Example: eridu evaluate checks
+    """
+    from eridu.etl.checks_evaluation import generate_checks_report
+
+    generate_checks_report(checks_path, model_path, use_gpu, threshold)
 
 
 if __name__ == "__main__":
