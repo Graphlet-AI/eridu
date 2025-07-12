@@ -176,7 +176,11 @@ def evaluate_checks(
 
 
 def generate_checks_report(  # noqa: C901
-    checks_path: str, model_path: Optional[str] = None, use_gpu: bool = True, threshold: float = 0.5
+    checks_path: str,
+    model_path: Optional[str] = None,
+    use_gpu: bool = True,
+    threshold: float = 0.5,
+    entity_type: str = "company",
 ) -> None:
     """Generate a comprehensive evaluation report using checks.yml test cases.
 
@@ -185,6 +189,7 @@ def generate_checks_report(  # noqa: C901
         model_path: Path to the SBERT model (None for default)
         use_gpu: Whether to use GPU acceleration
         threshold: Classification threshold for binary predictions
+        entity_type: Entity type to evaluate ("person", "company", or "both")
     """
     print(f"Loading checks from: {checks_path}")
 
@@ -203,85 +208,53 @@ def generate_checks_report(  # noqa: C901
         print(f"Error loading model: {e}")
         return
 
-    # Filter checks by schema
-    person_checks = filter_checks_by_schema(checks, ["Person"])
-    company_checks = filter_checks_by_schema(checks, ["Company"])
+    # Filter checks by schema based on entity_type
+    if entity_type == "person":
+        target_checks = filter_checks_by_schema(checks, ["Person"])
+        print(f"Found {len(target_checks)} Person checks")
+        eval_title = "PERSON ENTITY MATCHING EVALUATION"
+    elif entity_type == "company":
+        target_checks = filter_checks_by_schema(checks, ["Company"])
+        print(f"Found {len(target_checks)} Company checks")
+        eval_title = "COMPANY ENTITY MATCHING EVALUATION"
+    else:  # both
+        person_checks = filter_checks_by_schema(checks, ["Person"])
+        company_checks = filter_checks_by_schema(checks, ["Company"])
+        target_checks = person_checks + company_checks
+        print(f"Found {len(person_checks)} Person checks")
+        print(f"Found {len(company_checks)} Company checks")
+        eval_title = "COMBINED ENTITY MATCHING EVALUATION"
 
-    print(f"Found {len(person_checks)} Person checks")
-    print(f"Found {len(company_checks)} Company checks")
-
-    # Evaluate Person checks
+    # Evaluate the target checks
     print("\n" + "=" * 60)
-    print("PERSON ENTITY MATCHING EVALUATION")
+    print(eval_title)
     print("=" * 60)
 
-    person_results = evaluate_checks(person_checks, model, use_gpu, threshold)
+    results = evaluate_checks(target_checks, model, use_gpu, threshold)
 
-    print(f"Total Person checks: {person_results['total_checks']}")
-    print(f"Accuracy:  {person_results['accuracy']:.4f}")
-    print(f"Precision: {person_results['precision']:.4f}")
-    print(f"Recall:    {person_results['recall']:.4f}")
-    print(f"F1 Score:  {person_results['f1']:.4f}")
-    print(f"True Positives:  {person_results['true_positives']}")
-    print(f"False Positives: {person_results['false_positives']}")
-    print(f"True Negatives:  {person_results['true_negatives']}")
-    print(f"False Negatives: {person_results['false_negatives']}")
+    print(f"Total checks: {results['total_checks']}")
+    print(f"Accuracy:  {results['accuracy']:.4f}")
+    print(f"Precision: {results['precision']:.4f}")
+    print(f"Recall:    {results['recall']:.4f}")
+    print(f"F1 Score:  {results['f1']:.4f}")
+    print(f"True Positives:  {results['true_positives']}")
+    print(f"False Positives: {results['false_positives']}")
+    print(f"True Negatives:  {results['true_negatives']}")
+    print(f"False Negatives: {results['false_negatives']}")
 
-    # Show some error examples for Person
-    print("\nPerson Error Examples:")
-    person_results_list = person_results["results"]
-    if isinstance(person_results_list, list):
-        person_errors = [r for r in person_results_list if not r["correct"]]
-        for i, error in enumerate(person_errors[:5]):
+    # Show some error examples
+    print(f"\n{entity_type.title()} Error Examples:")
+    results_list = results["results"]
+    if isinstance(results_list, list):
+        errors = [r for r in results_list if not r["correct"]]
+        for i, error in enumerate(errors[:5]):
             print(f"  {i + 1}. '{error['query_name']}' vs '{error['candidate_name']}'")
             print(
                 f"     Ground truth: {error['match']}, Predicted: {error['predicted_match']}, Score: {error['similarity_score']:.4f}"
             )
             if error["label"]:
                 print(f"     Label: {error['label']}")
-
-    # Evaluate Company checks
-    print("\n" + "=" * 60)
-    print("COMPANY ENTITY MATCHING EVALUATION")
-    print("=" * 60)
-
-    company_results = evaluate_checks(company_checks, model, use_gpu, threshold)
-
-    print(f"Total Company checks: {company_results['total_checks']}")
-    print(f"Accuracy:  {company_results['accuracy']:.4f}")
-    print(f"Precision: {company_results['precision']:.4f}")
-    print(f"Recall:    {company_results['recall']:.4f}")
-    print(f"F1 Score:  {company_results['f1']:.4f}")
-    print(f"True Positives:  {company_results['true_positives']}")
-    print(f"False Positives: {company_results['false_positives']}")
-    print(f"True Negatives:  {company_results['true_negatives']}")
-    print(f"False Negatives: {company_results['false_negatives']}")
-
-    # Show some error examples for Company
-    print("\nCompany Error Examples:")
-    company_results_list = company_results["results"]
-    if isinstance(company_results_list, list):
-        company_errors = [r for r in company_results_list if not r["correct"]]
-        for i, error in enumerate(company_errors[:5]):
-            print(f"  {i + 1}. '{error['query_name']}' vs '{error['candidate_name']}'")
-            print(
-                f"     Ground truth: {error['match']}, Predicted: {error['predicted_match']}, Score: {error['similarity_score']:.4f}"
-            )
-            if error["label"]:
-                print(f"     Label: {error['label']}")
-
-    # Combined summary
-    all_checks = person_checks + company_checks
-    combined_results = evaluate_checks(all_checks, model, use_gpu, threshold)
-
-    print("\n" + "=" * 60)
-    print("COMBINED EVALUATION SUMMARY")
-    print("=" * 60)
-    print(f"Total checks: {combined_results['total_checks']}")
-    print(f"Overall Accuracy:  {combined_results['accuracy']:.4f}")
-    print(f"Overall Precision: {combined_results['precision']:.4f}")
-    print(f"Overall Recall:    {combined_results['recall']:.4f}")
-    print(f"Overall F1 Score:  {combined_results['f1']:.4f}")
 
     print(f"\nClassification threshold used: {threshold:.4f}")
     print(f"Model evaluated: {model_path or 'Default SBERT model'}")
+    print(f"Entity type: {entity_type}")

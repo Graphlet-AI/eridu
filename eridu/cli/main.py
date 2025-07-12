@@ -828,19 +828,26 @@ def evaluate_test(
     show_default=True,
     help="Classification threshold for binary predictions",
 )
+@click.option(
+    "--entity-type",
+    type=click.Choice(["person", "company", "both"]),
+    default="company",
+    show_default=True,
+    help="Entity type to evaluate (person, company, or both)",
+)
 def evaluate_checks(
-    checks_path: str, model_path: Optional[str], use_gpu: bool, threshold: float
+    checks_path: str, model_path: Optional[str], use_gpu: bool, threshold: float, entity_type: str
 ) -> None:
     """Evaluate a trained SBERT model using checks.yml test cases.
 
-    Loads the model and checks.yml file, runs evaluation on both Person and Company
-    entity matching, and produces detailed reports with metrics and error examples.
+    Loads the model and checks.yml file, runs evaluation on specified entity type
+    and produces detailed reports with metrics and error examples.
 
-    Example: eridu evaluate checks
+    Example: eridu evaluate checks --entity-type company
     """
     from eridu.etl.checks_evaluation import generate_checks_report
 
-    generate_checks_report(checks_path, model_path, use_gpu, threshold)
+    generate_checks_report(checks_path, model_path, use_gpu, threshold, entity_type)
 
 
 if __name__ == "__main__":
