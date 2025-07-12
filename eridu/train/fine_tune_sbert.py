@@ -354,8 +354,8 @@ print(f"Running initial evaluation on {device} for {len(sample_df):,} sample rec
 result_df: pd.DataFrame = sbert_compare_multiple_df(
     sbert_model, sample_df["left_name"], sample_df["right_name"], sample_df["match"], use_gpu=True
 )
-error_s: pd.Series = np.abs(result_df.match.astype(float) - result_df.similarity)  # type: ignore
-score_diff_s: pd.Series = np.abs(error_s - sample_df.score)  # type: ignore
+error_s: pd.Series = np.abs(result_df.match.astype(float) - result_df.similarity)
+score_diff_s: pd.Series = np.abs(error_s - sample_df.score)
 
 # Compute the mean, standard deviation, and interquartile range of the error
 stats_df: pd.DataFrame = pd.DataFrame(  # retain and append fine-tuned SBERT stats for comparison

@@ -330,7 +330,7 @@ def sbert_compare(
         # Original CPU implementation
         embedding1_np: np.ndarray = sbert_model.encode(name1, convert_to_numpy=True)
         embedding2_np: np.ndarray = sbert_model.encode(name2, convert_to_numpy=True)
-        diff: float = 1 - distance.cosine(embedding1_np, embedding2_np)
+        diff: float = float(1 - distance.cosine(embedding1_np, embedding2_np))
         return diff
 
 
