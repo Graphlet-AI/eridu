@@ -191,19 +191,10 @@ def evaluate_model(
     return metrics
 
 
-def analyze_errors(
+def _categorize_test_results(
     test_df: pd.DataFrame, similarity_scores: np.ndarray, threshold: float
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Analyze model errors to identify patterns.
-
-    Args:
-        test_df: Test data
-        similarity_scores: Similarity scores from model
-        threshold: Classification threshold
-
-    Returns:
-        Tuple of (false_positives, false_negatives) DataFrames
-    """
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Categorize test results into TP, FP, TN, FN."""
     # Create results dataframe
     results_df = test_df.copy()
     results_df["similarity"] = similarity_scores
@@ -219,16 +210,119 @@ def analyze_errors(
     # Get predictions
     results_df["predicted_match"] = results_df["similarity"] >= threshold
 
-    # Find errors
+    # Categorize results
+    true_positives = results_df[
+        (results_df["true_label"] == 1) & results_df["predicted_match"]
+    ].sort_values("similarity", ascending=False)
+
     false_positives = results_df[
         (results_df["true_label"] == 0) & results_df["predicted_match"]
     ].sort_values("similarity", ascending=False)
+
+    true_negatives = results_df[
+        (results_df["true_label"] == 0) & ~results_df["predicted_match"]
+    ].sort_values("similarity", ascending=True)
 
     false_negatives = results_df[
         (results_df["true_label"] == 1) & ~results_df["predicted_match"]
     ].sort_values("similarity", ascending=False)
 
-    # Return the error DataFrames
+    return true_positives, false_positives, true_negatives, false_negatives
+
+
+def _create_test_example_df(examples: pd.DataFrame, limit: int) -> pd.DataFrame:
+    """Create DataFrame from test examples."""
+    if examples.empty:
+        return pd.DataFrame(columns=["Left Name", "Right Name", "Score"])
+
+    limited_examples = examples.head(limit)
+    df_data = []
+    for _, row in limited_examples.iterrows():
+        left_name = str(row["left_name"])
+        right_name = str(row["right_name"])
+
+        df_data.append(
+            {
+                "Left Name": left_name[:50] + "..." if len(left_name) > 50 else left_name,
+                "Right Name": right_name[:50] + "..." if len(right_name) > 50 else right_name,
+                "Score": f"{row['similarity']:.4f}",
+            }
+        )
+    return pd.DataFrame(df_data)
+
+
+def display_test_examples_tables(
+    test_df: pd.DataFrame, similarity_scores: np.ndarray, threshold: float, n_examples: int = 10
+) -> None:
+    """Display examples of true/false positives and true/false negatives in pandas-style tables.
+
+    Args:
+        test_df: Test data DataFrame
+        similarity_scores: Array of similarity scores
+        threshold: Classification threshold
+        n_examples: Number of examples to show for each category
+    """
+    true_positives, false_positives, true_negatives, false_negatives = _categorize_test_results(
+        test_df, similarity_scores, threshold
+    )
+
+    # Display tables for each category
+    print(f"\n{'=' * 80}")
+    print("CLASSIFICATION EXAMPLES")
+    print(f"{'=' * 80}")
+
+    print(f"\n🟢 TRUE POSITIVES ({len(true_positives)} total, showing up to {n_examples}):")
+    print("   Correctly identified as matches")
+    tp_df = _create_test_example_df(true_positives, n_examples)
+    if not tp_df.empty:
+        print(tp_df.to_string(index=False, max_colwidth=50))
+    else:
+        print("   No true positives found.")
+
+    print(f"\n🔴 FALSE POSITIVES ({len(false_positives)} total, showing up to {n_examples}):")
+    print("   Incorrectly identified as matches")
+    fp_df = _create_test_example_df(false_positives, n_examples)
+    if not fp_df.empty:
+        print(fp_df.to_string(index=False, max_colwidth=50))
+    else:
+        print("   No false positives found.")
+
+    print(f"\n🟢 TRUE NEGATIVES ({len(true_negatives)} total, showing up to {n_examples}):")
+    print("   Correctly identified as non-matches")
+    tn_df = _create_test_example_df(true_negatives, n_examples)
+    if not tn_df.empty:
+        print(tn_df.to_string(index=False, max_colwidth=50))
+    else:
+        print("   No true negatives found.")
+
+    print(f"\n🔴 FALSE NEGATIVES ({len(false_negatives)} total, showing up to {n_examples}):")
+    print("   Incorrectly identified as non-matches")
+    fn_df = _create_test_example_df(false_negatives, n_examples)
+    if not fn_df.empty:
+        print(fn_df.to_string(index=False, max_colwidth=50))
+    else:
+        print("   No false negatives found.")
+
+
+def analyze_errors(
+    test_df: pd.DataFrame, similarity_scores: np.ndarray, threshold: float
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Analyze model errors to identify patterns.
+
+    Args:
+        test_df: Test data
+        similarity_scores: Similarity scores from model
+        threshold: Classification threshold
+
+    Returns:
+        Tuple of (false_positives, false_negatives) DataFrames
+    """
+    # Get categorized results
+    _, false_positives, _, false_negatives = _categorize_test_results(
+        test_df, similarity_scores, threshold
+    )
+
+    # Return the error DataFrames (maintaining backward compatibility)
     return false_positives, false_negatives
 
 
@@ -285,11 +379,6 @@ def evaluate_and_print_report(
     # Evaluate model
     metrics = evaluate_model(model, test_df, use_gpu, threshold)
 
-    # Find error examples
-    false_positives, false_negatives = analyze_errors(
-        test_df, similarity_scores, metrics["threshold"]
-    )
-
     # Print report
     print("\nModel Evaluation Report")
     print("=" * 40)
@@ -308,25 +397,15 @@ def evaluate_and_print_report(
     print(f"  True Negatives:  {metrics['true_negatives']:,}")
     print(f"  False Negatives: {metrics['false_negatives']:,}")
 
-    # Print error analysis
-    print("\nError Analysis:")
-    print(f"  False Positive Examples (showing top 5 of {len(false_positives):,}):")
-    if len(false_positives) > 0:
-        for i, (_, row) in enumerate(false_positives.head(5).iterrows()):
-            print(
-                f"    {i + 1}. '{row['left_name']}' vs '{row['right_name']}' (Score: {row['similarity']:.4f})"
-            )
-    else:
-        print("    None found")
+    # Display examples in categorized tables
+    display_test_examples_tables(test_df, similarity_scores, metrics["threshold"], n_examples=10)
 
-    print(f"  False Negative Examples (showing top 5 of {len(false_negatives):,}):")
-    if len(false_negatives) > 0:
-        for i, (_, row) in enumerate(false_negatives.head(5).iterrows()):
-            print(
-                f"    {i + 1}. '{row['left_name']}' vs '{row['right_name']}' (Score: {row['similarity']:.4f})"
-            )
-    else:
-        print("    None found")
+    print(f"\n{'=' * 80}")
+    print("EVALUATION SUMMARY")
+    print(f"{'=' * 80}")
+    print(f"Model: {model_path or SBERT_OUTPUT_FOLDER}")
+    print(f"Test data: {len(test_df):,} pairs")
+    print(f"Classification threshold: {metrics['threshold']:.4f}")
 
     # Return metrics
     return metrics

@@ -3,6 +3,7 @@
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import pandas as pd
 import yaml
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics import (  # type: ignore
@@ -175,6 +176,103 @@ def evaluate_checks(
     }
 
 
+def _categorize_results(
+    results: List[Dict[str, Any]],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Categorize results into TP, FP, TN, FN."""
+    true_positives = []
+    false_positives = []
+    true_negatives = []
+    false_negatives = []
+
+    for result in results:
+        ground_truth = result["match"]
+        predicted = result["predicted_match"]
+
+        if ground_truth and predicted:
+            true_positives.append(result)
+        elif not ground_truth and predicted:
+            false_positives.append(result)
+        elif not ground_truth and not predicted:
+            true_negatives.append(result)
+        elif ground_truth and not predicted:
+            false_negatives.append(result)
+
+    return true_positives, false_positives, true_negatives, false_negatives
+
+
+def _create_example_df(examples: List[Dict[str, Any]], limit: int) -> pd.DataFrame:
+    """Create DataFrame from examples."""
+    if not examples:
+        return pd.DataFrame(columns=["Query Name", "Candidate Name", "Score", "Label"])
+
+    limited_examples = examples[:limit]
+    df_data = []
+    for ex in limited_examples:
+        query_name = ex["query_name"]
+        candidate_name = ex["candidate_name"]
+        label = ex.get("label", "")
+
+        df_data.append(
+            {
+                "Query Name": query_name[:50] + "..." if len(query_name) > 50 else query_name,
+                "Candidate Name": (
+                    candidate_name[:50] + "..." if len(candidate_name) > 50 else candidate_name
+                ),
+                "Score": f"{ex['similarity_score']:.4f}",
+                "Label": label[:30] + "..." if len(label) > 30 else label,
+            }
+        )
+    return pd.DataFrame(df_data)
+
+
+def display_examples_tables(results: List[Dict[str, Any]], n_examples: int = 10) -> None:
+    """Display examples of true/false positives and true/false negatives in pandas-style tables.
+
+    Args:
+        results: List of evaluation result dictionaries
+        n_examples: Number of examples to show for each category
+    """
+    true_positives, false_positives, true_negatives, false_negatives = _categorize_results(results)
+
+    # Display tables for each category
+    print(f"\n{'=' * 80}")
+    print("CLASSIFICATION EXAMPLES")
+    print(f"{'=' * 80}")
+
+    print(f"\n🟢 TRUE POSITIVES ({len(true_positives)} total, showing up to {n_examples}):")
+    print("   Correctly identified as matches")
+    tp_df = _create_example_df(true_positives, n_examples)
+    if not tp_df.empty:
+        print(tp_df.to_string(index=False, max_colwidth=50))
+    else:
+        print("   No true positives found.")
+
+    print(f"\n🔴 FALSE POSITIVES ({len(false_positives)} total, showing up to {n_examples}):")
+    print("   Incorrectly identified as matches")
+    fp_df = _create_example_df(false_positives, n_examples)
+    if not fp_df.empty:
+        print(fp_df.to_string(index=False, max_colwidth=50))
+    else:
+        print("   No false positives found.")
+
+    print(f"\n🟢 TRUE NEGATIVES ({len(true_negatives)} total, showing up to {n_examples}):")
+    print("   Correctly identified as non-matches")
+    tn_df = _create_example_df(true_negatives, n_examples)
+    if not tn_df.empty:
+        print(tn_df.to_string(index=False, max_colwidth=50))
+    else:
+        print("   No true negatives found.")
+
+    print(f"\n🔴 FALSE NEGATIVES ({len(false_negatives)} total, showing up to {n_examples}):")
+    print("   Incorrectly identified as non-matches")
+    fn_df = _create_example_df(false_negatives, n_examples)
+    if not fn_df.empty:
+        print(fn_df.to_string(index=False, max_colwidth=50))
+    else:
+        print("   No false negatives found.")
+
+
 def generate_checks_report(  # noqa: C901
     checks_path: str,
     model_path: Optional[str] = None,
@@ -242,19 +340,14 @@ def generate_checks_report(  # noqa: C901
     print(f"True Negatives:  {results['true_negatives']}")
     print(f"False Negatives: {results['false_negatives']}")
 
-    # Show some error examples
-    print(f"\n{entity_type.title()} Error Examples:")
+    # Display examples in categorized tables
     results_list = results["results"]
     if isinstance(results_list, list):
-        errors = [r for r in results_list if not r["correct"]]
-        for i, error in enumerate(errors[:5]):
-            print(f"  {i + 1}. '{error['query_name']}' vs '{error['candidate_name']}'")
-            print(
-                f"     Ground truth: {error['match']}, Predicted: {error['predicted_match']}, Score: {error['similarity_score']:.4f}"
-            )
-            if error["label"]:
-                print(f"     Label: {error['label']}")
+        display_examples_tables(results_list, n_examples=10)
 
-    print(f"\nClassification threshold used: {threshold:.4f}")
+    print(f"\n{'=' * 80}")
+    print("EVALUATION SUMMARY")
+    print(f"{'=' * 80}")
+    print(f"Classification threshold used: {threshold:.4f}")
     print(f"Model evaluated: {model_path or 'Default SBERT model'}")
     print(f"Entity type: {entity_type}")
