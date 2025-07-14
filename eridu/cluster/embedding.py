@@ -136,7 +136,7 @@ def cluster_names(  # noqa: C901
     input_path: str,
     image_dir: str = "./images",
     output_dir: str = "./data",
-    model_name: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    model_name: str = "data/fine-tuned-sbert-sentence-transformers-paraphrase-multilingual-MiniLM-L12-v2-original-adafactor",
     sample_size: Optional[int] = None,
     min_cluster_size: int = 5,
     min_samples: int = 3,

@@ -197,7 +197,7 @@ def compute() -> None:
 )
 @click.option(
     "--model",
-    default="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    default="data/fine-tuned-sbert-sentence-transformers-paraphrase-multilingual-MiniLM-L12-v2-original-adafactor",
     help="Sentence transformer model to use for embeddings",
 )
 @click.option(
