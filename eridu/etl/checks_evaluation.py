@@ -1,5 +1,6 @@
 """Module for evaluating entity matching performance using checks.yml test cases."""
 
+import os
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -273,12 +274,74 @@ def display_examples_tables(results: List[Dict[str, Any]], n_examples: int = 10)
         print("   No false negatives found.")
 
 
+def save_results_to_csv(
+    results: List[Dict[str, Any]],
+    output_dir: str = "data/evaluation_results",
+) -> None:
+    """Save categorized results to CSV files.
+
+    Args:
+        results: List of evaluation result dictionaries
+        output_dir: Directory to save CSV files to
+    """
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Categorize results
+    true_positives, false_positives, true_negatives, false_negatives = _categorize_results(results)
+
+    # Prepare data for CSV export
+    def prepare_for_csv(results_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        csv_data = []
+        for result in results_list:
+            csv_data.append(
+                {
+                    "query_name": result["query_name"],
+                    "candidate_name": result["candidate_name"],
+                    "schema": result["schema"],
+                    "similarity_score": result["similarity_score"],
+                    "ground_truth_match": result["match"],
+                    "predicted_match": result["predicted_match"],
+                    "label": result.get("label", ""),
+                }
+            )
+        return csv_data
+
+    # Save each category to CSV
+    if true_positives:
+        tp_df = pd.DataFrame(prepare_for_csv(true_positives))
+        tp_df.to_csv(os.path.join(output_dir, "true_positives.csv"), index=False)
+        print(f"Saved {len(true_positives)} true positives to {output_dir}/true_positives.csv")
+
+    if false_positives:
+        fp_df = pd.DataFrame(prepare_for_csv(false_positives))
+        fp_df.to_csv(os.path.join(output_dir, "false_positives.csv"), index=False)
+        print(f"Saved {len(false_positives)} false positives to {output_dir}/false_positives.csv")
+
+    if true_negatives:
+        tn_df = pd.DataFrame(prepare_for_csv(true_negatives))
+        tn_df.to_csv(os.path.join(output_dir, "true_negatives.csv"), index=False)
+        print(f"Saved {len(true_negatives)} true negatives to {output_dir}/true_negatives.csv")
+
+    if false_negatives:
+        fn_df = pd.DataFrame(prepare_for_csv(false_negatives))
+        fn_df.to_csv(os.path.join(output_dir, "false_negatives.csv"), index=False)
+        print(f"Saved {len(false_negatives)} false negatives to {output_dir}/false_negatives.csv")
+
+    # Save all results to a single CSV for convenience
+    all_results_df = pd.DataFrame(prepare_for_csv(results))
+    all_results_df.to_csv(os.path.join(output_dir, "all_results.csv"), index=False)
+    print(f"Saved all {len(results)} results to {output_dir}/all_results.csv")
+
+
 def generate_checks_report(  # noqa: C901
     checks_path: str,
     model_path: Optional[str] = None,
     use_gpu: bool = True,
     threshold: float = 0.5,
     entity_type: str = "company",
+    save_csv: bool = False,
+    output_dir: str = "data/evaluation_results",
 ) -> None:
     """Generate a comprehensive evaluation report using checks.yml test cases.
 
@@ -288,6 +351,8 @@ def generate_checks_report(  # noqa: C901
         use_gpu: Whether to use GPU acceleration
         threshold: Classification threshold for binary predictions
         entity_type: Entity type to evaluate ("person", "company", or "both")
+        save_csv: Whether to save results to CSV files
+        output_dir: Directory to save CSV files to
     """
     print(f"Loading checks from: {checks_path}")
 
@@ -345,9 +410,31 @@ def generate_checks_report(  # noqa: C901
     if isinstance(results_list, list):
         display_examples_tables(results_list, n_examples=10)
 
+    # Save results to CSV if requested
+    if save_csv and isinstance(results_list, list):
+        print(f"\n{'=' * 80}")
+        print("SAVING RESULTS TO CSV FILES")
+        print(f"{'=' * 80}")
+        save_results_to_csv(results_list, output_dir)
+
+        # Also run enhanced analysis
+        from eridu.etl.enhanced_evaluation_report import analyze_errors_detailed
+
+        true_positives, false_positives, true_negatives, false_negatives = _categorize_results(
+            results_list
+        )
+        analyze_errors_detailed(false_positives, false_negatives, output_dir)
+
     print(f"\n{'=' * 80}")
     print("EVALUATION SUMMARY")
     print(f"{'=' * 80}")
     print(f"Classification threshold used: {threshold:.4f}")
     print(f"Model evaluated: {model_path or 'Default SBERT model'}")
     print(f"Entity type: {entity_type}")
+
+    # Add category analysis if CSV files were saved
+    if save_csv and os.path.exists(os.path.join(output_dir, "error_analysis.csv")):
+        from eridu.etl.error_category_analysis import generate_category_report
+
+        category_report = generate_category_report(output_dir)
+        print(category_report)

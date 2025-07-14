@@ -495,16 +495,15 @@ def cluster_split(
 @click.option(
     "--input",
     "--input-path",
-    default="./data/pairs-all.parquet",
-    show_default=True,
-    help="Path to the input Parquet file for training",
+    default=None,
+    help="Path to the input Parquet file for training (auto-set based on --data-type if not specified)",
 )
 @click.option(
     "--data-type",
     type=click.Choice(["people", "companies", "both"]),
     default="both",
     show_default=True,
-    help="Type of data to train on (logged to WandB as metadata)",
+    help="Type of data to train on (determines default input file and logs to WandB)",
 )
 @click.option(
     "--output",
@@ -655,6 +654,24 @@ def train(
         raise click.UsageError(
             "Error: Cannot use both FP16 and quantization together. Please choose only one option."
         )
+
+    # Set default input path based on data_type if not specified
+    data_type_paths = {
+        "people": "./data/filtered/people.parquet",
+        "companies": "./data/filtered/companies.parquet",
+        "both": "./data/pairs-all.parquet",
+    }
+
+    if input is None:
+        input = data_type_paths[data_type]
+        click.echo(f"Using default input path for {data_type} data: {input}")
+
+    # Validate that the input path exists
+    if not os.path.exists(input):
+        error_msg = f"Input file not found: {input}"
+        if input in data_type_paths.values() and data_type != "both":
+            error_msg += "\nPlease run 'eridu etl filter' first to create filtered data files."
+        raise click.UsageError(error_msg)
 
     click.echo(f"Fine-tuning SBERT model: {model}")
     click.echo(f"Input path: {input}")
@@ -847,7 +864,7 @@ def evaluate_checks(
     """
     from eridu.etl.checks_evaluation import generate_checks_report
 
-    generate_checks_report(checks_path, model_path, use_gpu, threshold, entity_type)
+    generate_checks_report(checks_path, model_path, use_gpu, threshold, entity_type, save_csv=True)
 
 
 if __name__ == "__main__":
