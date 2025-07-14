@@ -380,12 +380,18 @@ def generate_checks_report(  # noqa: C901
         target_checks = filter_checks_by_schema(checks, ["Company"])
         print(f"Found {len(target_checks)} Company checks")
         eval_title = "COMPANY ENTITY MATCHING EVALUATION"
+    elif entity_type == "address":
+        target_checks = filter_checks_by_schema(checks, ["Address", "Location"])
+        print(f"Found {len(target_checks)} Address checks")
+        eval_title = "ADDRESS ENTITY MATCHING EVALUATION"
     else:  # both
         person_checks = filter_checks_by_schema(checks, ["Person"])
         company_checks = filter_checks_by_schema(checks, ["Company"])
-        target_checks = person_checks + company_checks
+        address_checks = filter_checks_by_schema(checks, ["Address", "Location"])
+        target_checks = person_checks + company_checks + address_checks
         print(f"Found {len(person_checks)} Person checks")
         print(f"Found {len(company_checks)} Company checks")
+        print(f"Found {len(address_checks)} Address checks")
         eval_title = "COMBINED ENTITY MATCHING EVALUATION"
 
     # Evaluate the target checks

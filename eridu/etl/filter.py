@@ -108,21 +108,30 @@ def filter_pairs(input_path: str, output_path: str) -> None:
         )
         click.echo(f"Filtered companies records count: {companies_df.count():,}")
 
+        # Filter addresses (LOC category for locations/addresses)
+        addresses_df = filtered_df.filter(
+            (F.col("left_category") == "LOC") & (F.col("right_category") == "LOC")
+        )
+        click.echo(f"Filtered addresses records count: {addresses_df.count():,}")
+
         # Write the filtered data to separate files in the output directory
         click.echo(f"Writing filtered data to {output_path}")
 
         filtered_path = os.path.join(output_path, "filtered.parquet")
         people_path = os.path.join(output_path, "people.parquet")
         companies_path = os.path.join(output_path, "companies.parquet")
+        addresses_path = os.path.join(output_path, "addresses.parquet")
 
         filtered_df.coalesce(1).write.mode("overwrite").parquet(filtered_path)
         people_df.coalesce(1).write.mode("overwrite").parquet(people_path)
         companies_df.coalesce(1).write.mode("overwrite").parquet(companies_path)
+        addresses_df.coalesce(1).write.mode("overwrite").parquet(addresses_path)
 
         click.echo("Filtering completed successfully!")
         click.echo(f"  - All filtered data: {filtered_path}")
         click.echo(f"  - People data: {people_path}")
         click.echo(f"  - Companies data: {companies_path}")
+        click.echo(f"  - Addresses data: {addresses_path}")
 
     finally:
         # Stop Spark session

@@ -24,6 +24,69 @@ from eridu.etl.analyze import (  # noqa: E402
 from eridu.etl.filter import filter_pairs  # noqa: E402
 
 
+def get_model_path_for_entity_type(entity_type: Optional[str] = None) -> str:
+    """Get the appropriate model path based on entity type.
+
+    Args:
+        entity_type: The entity type (people, companies, addresses, or None for default)
+
+    Returns:
+        The model path including entity type
+    """
+    base_model = "data/fine-tuned-sbert-sentence-transformers-paraphrase-multilingual-MiniLM-L12-v2-original-adafactor"
+    if entity_type:
+        return f"{base_model}-{entity_type}"
+    # Default to companies model for backward compatibility
+    return f"{base_model}-companies"
+
+
+def _download_with_progress(url: str, path: Path, desc: str) -> bool:
+    """Download a file with progress bar.
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        response = requests.get(url, stream=True)
+        if response.status_code != 200:
+            click.echo(f"Warning: Failed to download {desc} (HTTP {response.status_code})")
+            return False
+
+        total_size = int(response.headers.get("content-length", 0))
+        with open(path, "wb") as f:
+            with tqdm(total=total_size, unit="B", unit_scale=True, desc=desc) as pbar:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        pbar.update(len(chunk))
+        click.echo(f"Successfully downloaded {desc}: {path}")
+        return True
+    except Exception as e:
+        click.echo(f"Warning: Error downloading {desc}: {e}")
+        return False
+
+
+def _download_text_file(url: str, path: Path, desc: str) -> bool:
+    """Download a text file.
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(response.text)
+            click.echo(f"Successfully downloaded {desc}: {path}")
+            return True
+        else:
+            click.echo(f"Warning: Failed to download {desc} (HTTP {response.status_code})")
+            return False
+    except Exception as e:
+        click.echo(f"Warning: Error downloading {desc}: {e}")
+        return False
+
+
 class OrderedGroup(click.Group):
     """Custom Click Group that maintains order of commands in help."""
 
@@ -57,7 +120,13 @@ def cli() -> None:
     help="Directory to save the downloaded and extracted files",
 )
 def download(url: str, output_dir: str) -> None:
-    """Download and convert the labeled entity pairs CSV file to Parquet format."""
+    """Download labeled entity pairs, checks.yml, and statements.csv files.
+
+    Downloads:
+    1. Entity pairs CSV file (gzipped) and converts to Parquet
+    2. checks.yml for entity matching evaluation
+    3. statements.csv from OpenSanctions for additional entity data
+    """
     output_dir_path = Path(output_dir)
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
@@ -67,31 +136,22 @@ def download(url: str, output_dir: str) -> None:
 
     # Step 1: Download the pairs file
     click.echo(f"Downloading {url} to {gz_path}")
-    response = requests.get(url, stream=True)
-    total_size = int(response.headers.get("content-length", 0))
-
-    with open(gz_path, "wb") as f:
-        with tqdm(total=total_size, unit="B", unit_scale=True, desc=filename) as pbar:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-                    pbar.update(len(chunk))
+    _download_with_progress(url, gz_path, filename)
 
     # Step 2: Download checks.yml file
     checks_url = "https://raw.githubusercontent.com/opensanctions/nomenklatura/refs/heads/main/contrib/name_benchmark/checks.yml"
     checks_path = output_dir_path / "checks.yml"
     click.echo(f"Downloading checks.yml to {checks_path}")
+    _download_text_file(checks_url, checks_path, "checks.yml")
 
-    checks_response = requests.get(checks_url)
-    if checks_response.status_code == 200:
-        with open(checks_path, "w", encoding="utf-8") as f:
-            f.write(checks_response.text)
-        click.echo(f"Successfully downloaded checks.yml: {checks_path}")
-    else:
-        click.echo(f"Warning: Failed to download checks.yml (HTTP {checks_response.status_code})")
+    # Step 3: Download statements.csv file
+    statements_url = "https://data.opensanctions.org/datasets/latest/default/statements.csv"
+    statements_path = output_dir_path / "statements.csv"
+    click.echo(f"\nDownloading statements.csv from {statements_url}")
+    _download_with_progress(statements_url, statements_path, "statements.csv")
 
-    # Step 3: Read the gzipped CSV directly and convert to Parquet
-    click.echo(f"Reading gzipped CSV file: {gz_path}")
+    # Step 4: Read the gzipped CSV directly and convert to Parquet
+    click.echo(f"\nReading gzipped CSV file: {gz_path}")
     try:
         # Pandas automatically detects and handles gzipped files
         df = pd.read_csv(gz_path, compression="gzip")
@@ -109,7 +169,7 @@ def download(url: str, output_dir: str) -> None:
         click.echo(f"Error processing CSV: {e}")
         raise
 
-    click.echo("Download and conversion to Parquet completed successfully.")
+    click.echo("\nDownload and conversion to Parquet completed successfully.")
     click.echo("\nTo generate a report on this data, run:")
     click.echo(f"  eridu etl report --parquet-path {parquet_path}")
 
@@ -179,9 +239,15 @@ def compute() -> None:
 @click.option(
     "--input",
     "--input-path",
-    default="./data/pairs-all.parquet",
+    default=None,
     type=click.Path(exists=True, dir_okay=True, readable=True),
-    help="Path to the input Parquet file containing names to cluster",
+    help="Path to the input Parquet file containing names to cluster (auto-set based on --data-type if not specified)",
+)
+@click.option(
+    "--data-type",
+    type=click.Choice(["people", "companies", "addresses"]),
+    default=None,
+    help="Type of data to cluster (determines default input file if --input not specified)",
 )
 @click.option(
     "--image-dir",
@@ -197,8 +263,8 @@ def compute() -> None:
 )
 @click.option(
     "--model",
-    default="data/fine-tuned-sbert-sentence-transformers-paraphrase-multilingual-MiniLM-L12-v2-original-adafactor",
-    help="Sentence transformer model to use for embeddings",
+    default=None,
+    help="Sentence transformer model to use for embeddings (auto-selected based on data-type if not specified)",
 )
 @click.option(
     "--sample-size",
@@ -233,10 +299,11 @@ def compute() -> None:
     help="Random seed for reproducibility",
 )
 def compute_embed(
-    input: str,
+    input: Optional[str],
+    data_type: Optional[str],
     image_dir: str,
     output_dir: str,
-    model: str,
+    model: Optional[str],
     sample_size: Optional[int],
     min_cluster_size: int,
     min_samples: int,
@@ -245,11 +312,29 @@ def compute_embed(
     random_seed: int,
 ) -> None:
     """Compute clusters using HDBSCAN on sentence transformer embeddings, with T-SNE for visualization."""
+    # Set default input path based on data_type if not specified
+    if input is None:
+        if data_type == "people":
+            input = "./data/filtered/people.parquet"
+        elif data_type == "companies":
+            input = "./data/filtered/companies.parquet"
+        elif data_type == "addresses":
+            input = "./data/filtered/addresses.parquet"
+        else:
+            input = "./data/pairs-all.parquet"
+        click.echo(f"Using input path: {input}")
+
+    # Set default model path based on data_type if not specified
+    if model is None:
+        model = get_model_path_for_entity_type(data_type)
+        click.echo(f"Using model: {model}")
+
     cluster_names(
         input_path=input,
         image_dir=image_dir,
         output_dir=output_dir,
         model_name=model,
+        entity_type=data_type if data_type else "companies",
         sample_size=sample_size,
         min_cluster_size=min_cluster_size,
         min_samples=min_samples,
@@ -263,9 +348,15 @@ def compute_embed(
 @click.option(
     "--input",
     "--input-path",
-    default="./data/pairs-all.parquet",
+    default=None,
     type=click.Path(exists=True, dir_okay=True, readable=True),
-    help="Path to the input Parquet file containing names to cluster",
+    help="Path to the input Parquet file containing names to cluster (auto-set based on --data-type if not specified)",
+)
+@click.option(
+    "--data-type",
+    type=click.Choice(["people", "companies", "addresses"]),
+    default=None,
+    help="Type of data to cluster (determines default input file if --input not specified)",
 )
 @click.option(
     "--image-dir",
@@ -333,7 +424,8 @@ def compute_embed(
     help="Random seed for reproducibility",
 )
 def compute_token(
-    input: str,
+    input: Optional[str],
+    data_type: Optional[str],
     image_dir: str,
     output_dir: str,
     model: str,
@@ -348,6 +440,18 @@ def compute_token(
     random_seed: int,
 ) -> None:
     """Cluster names using traditional NLP approach with BERT tokenization and TF-IDF."""
+    # Set default input path based on data_type if not specified
+    if input is None:
+        if data_type == "people":
+            input = "./data/filtered/people.parquet"
+        elif data_type == "companies":
+            input = "./data/filtered/companies.parquet"
+        elif data_type == "addresses":
+            input = "./data/filtered/addresses.parquet"
+        else:
+            input = "./data/pairs-all.parquet"
+        click.echo(f"Using input path: {input}")
+
     # Parse ngram_range from string
     ngram_min, ngram_max = map(int, ngram_range.split(","))
 
@@ -500,7 +604,7 @@ def cluster_split(
 )
 @click.option(
     "--data-type",
-    type=click.Choice(["people", "companies", "both"]),
+    type=click.Choice(["people", "companies", "addresses", "both"]),
     default="both",
     show_default=True,
     help="Type of data to train on (determines default input file and logs to WandB)",
@@ -659,6 +763,7 @@ def train(
     data_type_paths = {
         "people": "./data/filtered/people.parquet",
         "companies": "./data/filtered/companies.parquet",
+        "addresses": "./data/filtered/addresses.parquet",
         "both": "./data/pairs-all.parquet",
     }
 
@@ -740,9 +845,8 @@ def train(
 @click.argument("name2", type=str)
 @click.option(
     "--model-path",
-    default="data/fine-tuned-sbert-sentence-transformers-paraphrase-multilingual-MiniLM-L12-v2-original-adafactor",
-    show_default=True,
-    help="Path to the fine-tuned SentenceTransformer model directory",
+    default=None,
+    help="Path to the fine-tuned SentenceTransformer model directory (defaults to companies model)",
 )
 @click.option(
     "--use-gpu/--no-gpu",
@@ -750,7 +854,7 @@ def train(
     show_default=True,
     help="Whether to use GPU acceleration for inference",
 )
-def compare(name1: str, name2: str, model_path: str, use_gpu: bool) -> None:
+def compare(name1: str, name2: str, model_path: Optional[str], use_gpu: bool) -> None:
     """Compare two names using the fine-tuned SentenceTransformer model.
 
     Computes the similarity score between NAME1 and NAME2 using
@@ -759,6 +863,10 @@ def compare(name1: str, name2: str, model_path: str, use_gpu: bool) -> None:
     Example: eridu compare "John Smith" "Jon Smith"
     """
     from eridu.etl.compare import compare_names
+
+    # Use default companies model if not specified
+    if model_path is None:
+        model_path = get_model_path_for_entity_type("companies")
 
     similarity, success = compare_names(name1, name2, model_path, use_gpu)
 
@@ -823,9 +931,8 @@ def evaluate_test(
 @evaluate.command(name="checks", context_settings={"show_default": True})
 @click.option(
     "--checks-path",
-    default="./data/checks.yml",
-    show_default=True,
-    help="Path to the checks.yml file",
+    default=None,
+    help="Path to the checks file (auto-selected based on entity-type if not specified)",
 )
 @click.option(
     "--model-path",
@@ -847,13 +954,17 @@ def evaluate_test(
 )
 @click.option(
     "--entity-type",
-    type=click.Choice(["person", "company", "both"]),
+    type=click.Choice(["person", "company", "address", "both"]),
     default="company",
     show_default=True,
-    help="Entity type to evaluate (person, company, or both)",
+    help="Entity type to evaluate (person, company, address, or both)",
 )
 def evaluate_checks(
-    checks_path: str, model_path: Optional[str], use_gpu: bool, threshold: float, entity_type: str
+    checks_path: Optional[str],
+    model_path: Optional[str],
+    use_gpu: bool,
+    threshold: float,
+    entity_type: str,
 ) -> None:
     """Evaluate a trained SBERT model using checks.yml test cases.
 
@@ -861,8 +972,18 @@ def evaluate_checks(
     and produces detailed reports with metrics and error examples.
 
     Example: eridu evaluate checks --entity-type company
+    Example: eridu evaluate checks --entity-type address
     """
     from eridu.etl.checks_evaluation import generate_checks_report
+
+    # Auto-select checks file based on entity type if not specified
+    if checks_path is None:
+        if entity_type == "address":
+            checks_path = "./data/addresses.yml"
+            click.echo(f"Using addresses file: {checks_path}")
+        else:
+            checks_path = "./data/checks.yml"
+            click.echo(f"Using checks file: {checks_path}")
 
     generate_checks_report(checks_path, model_path, use_gpu, threshold, entity_type, save_csv=True)
 

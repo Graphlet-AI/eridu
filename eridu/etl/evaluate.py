@@ -24,8 +24,9 @@ SBERT_MODEL: str = os.environ.get(
 )
 VARIANT: str = os.environ.get("VARIANT", "original")
 OPTIMIZER: str = os.environ.get("OPTIMIZER", "adafactor")
+DATA_TYPE: str = os.environ.get("DATA_TYPE", "companies")
 MODEL_SAVE_NAME: str = (SBERT_MODEL + "-" + VARIANT + "-" + OPTIMIZER).replace("/", "-")
-SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
+SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}-{DATA_TYPE}"
 
 # Fallback model from HuggingFace Hub
 FALLBACK_MODEL: str = "Graphlet-AI/eridu"

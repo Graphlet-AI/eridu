@@ -85,7 +85,14 @@ WEIGHT_DECAY: float = float(os.environ.get("WEIGHT_DECAY", "0.01"))
 WARMUP_RATIO: float = float(os.environ.get("WARMUP_RATIO", "0.1"))
 SAVE_STRATEGY: str = os.environ.get("SAVE_STRATEGY", "epoch")
 EVAL_STRATEGY: str = os.environ.get("EVAL_STRATEGY", "epoch")
-SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}"
+
+# Get input path and data type from environment variables
+INPUT_PATH: str = os.environ.get("INPUT_PATH", "data/filtered/companies.parquet")
+OUTPUT_PATH: str = os.environ.get("OUTPUT_PATH", "data/output")
+DATA_TYPE: str = os.environ.get("DATA_TYPE", "companies")
+
+# Include entity type in the output folder name
+SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}-{DATA_TYPE}"
 SAVE_EVAL_STEPS: int = int(os.environ.get("SAVE_EVAL_STEPS", "100"))
 USE_FP16: bool = os.environ.get("USE_FP16", "False").lower() == "true"
 USE_QUANTIZATION: bool = os.environ.get("USE_QUANTIZATION", "False").lower() == "true"
@@ -99,11 +106,6 @@ USE_RESAMPLING: bool = os.environ.get("USE_RESAMPLING", "True").lower() == "true
 POST_SAMPLE_PCT: float = float(os.environ.get("POST_SAMPLE_PCT", "0.10"))
 MAX_GRAD_NORM: float = float(os.environ.get("MAX_GRAD_NORM", "1.0"))
 GATE_STATS_STEPS: int = int(os.environ.get("GATE_STATS_STEPS", "100"))
-
-# Get input path and data type from environment variables
-INPUT_PATH: str = os.environ.get("INPUT_PATH", "data/filtered/companies.parquet")
-OUTPUT_PATH: str = os.environ.get("OUTPUT_PATH", "data/output")
-DATA_TYPE: str = os.environ.get("DATA_TYPE", "both")
 
 # Get Weights & Biases configuration from environment variables
 WANDB_PROJECT: str = os.environ.get("WANDB_PROJECT", "eridu")

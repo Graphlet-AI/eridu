@@ -136,7 +136,8 @@ def cluster_names(  # noqa: C901
     input_path: str,
     image_dir: str = "./images",
     output_dir: str = "./data",
-    model_name: str = "data/fine-tuned-sbert-sentence-transformers-paraphrase-multilingual-MiniLM-L12-v2-original-adafactor",
+    model_name: Optional[str] = None,
+    entity_type: str = "companies",
     sample_size: Optional[int] = None,
     min_cluster_size: int = 5,
     min_samples: int = 3,
@@ -155,7 +156,9 @@ def cluster_names(  # noqa: C901
     output_dir : str, optional
         Directory to save the CSV files and embeddings, by default "./data"
     model_name : str, optional
-        Name of the sentence transformer model to use for embeddings
+        Name of the sentence transformer model to use for embeddings (auto-selected based on entity_type if not provided)
+    entity_type : str, optional
+        Type of entities being clustered (people, companies, addresses), by default "companies"
     sample_size : Optional[int], optional
         Number of names to sample for clustering (None = use all), by default None
     min_cluster_size : int, optional
@@ -169,6 +172,12 @@ def cluster_names(  # noqa: C901
     random_seed : int, optional
         Random seed for reproducibility, by default 31337
     """
+    # If model_name not provided, construct it based on entity_type
+    if model_name is None:
+        base_model = "data/fine-tuned-sbert-sentence-transformers-paraphrase-multilingual-MiniLM-L12-v2-original-adafactor"
+        model_name = f"{base_model}-{entity_type}"
+        print(f"Using model: {model_name}")
+
     print(f"Loading data from {input_path}")
     df = pd.read_parquet(input_path)
 

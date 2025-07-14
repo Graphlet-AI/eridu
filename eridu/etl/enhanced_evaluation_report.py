@@ -62,14 +62,19 @@ def generate_enhanced_report(
     elif entity_type == "company":
         target_checks = filter_checks_by_schema(checks, ["Company"])
         print(f"Found {len(target_checks)} Company checks")
+    elif entity_type == "address":
+        target_checks = filter_checks_by_schema(checks, ["Address", "Location"])
+        print(f"Found {len(target_checks)} Address checks")
     else:  # both
         person_checks = filter_checks_by_schema(checks, ["Person"])
         company_checks = filter_checks_by_schema(checks, ["Company"])
         org_checks = filter_checks_by_schema(checks, ["Organization"])
-        target_checks = person_checks + company_checks + org_checks
+        address_checks = filter_checks_by_schema(checks, ["Address", "Location"])
+        target_checks = person_checks + company_checks + org_checks + address_checks
         print(f"Found {len(person_checks)} Person checks")
         print(f"Found {len(company_checks)} Company checks")
         print(f"Found {len(org_checks)} Organization checks")
+        print(f"Found {len(address_checks)} Address checks")
 
     # Evaluate
     results = evaluate_checks(target_checks, model, use_gpu, threshold)
