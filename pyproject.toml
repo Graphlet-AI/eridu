@@ -48,9 +48,9 @@ package-mode = true
 eridu = "eridu.cli.main:cli"
 
 [[tool.poetry.source]]
-name = "pytorch-nightly"
-url = "https://download.pytorch.org/whl/nightly/gpu"
-priority = "explicit"
+name = "rapids"
+url = "https://pypi.nvidia.com"
+priority = "supplemental"
 
 [project]
 name = "eridu"
@@ -85,6 +85,7 @@ numba = "^0.60.0"
 llvmlite = "^0.43.0"
 cudf-cu12 = { version = "^25.6.0", source = "rapids" }
 cuml-cu12 = { version = "^25.6.0", source = "rapids" }
+cleanco = "^2.3"
 
 [tool.poetry.group.dev.dependencies]
 black = { version = "^25.1.0", extras = ["jupyter"] }
@@ -103,11 +104,6 @@ scipy-stubs = "^1.15.2.2"
 validate-pyproject = { extras = ["all"], version = "^0.24.1" }
 huggingface-hub = { extras = ["cli", "hf_xet"], version = "^0.31.2" }
 types-PyYAML = "6.0.12.20250516"
-
-[[tool.poetry.source]]
-name = "rapids"
-url = "https://pypi.nvidia.com"
-priority = "supplemental"
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]
