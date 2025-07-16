@@ -22,7 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Naming: snake_case for variables/functions, CamelCase for classes
 - BAML: Use for LLM-related code, regenerate client with `baml-cli generate`
 - Whitespaces: leave no trailing whitespaces, use 4 spaces for indentation, leave no whitespace on blank lines
-- Blank lines: Do not indent any blank lines in Python files. Indent should be 0 for these lines. Indent to 0 spaces when replacing 
+- Blank lines: Do not indent any blank lines in Python files. Indent should be 0 for these lines. Indent to 0 spaces when replacing a line with a blank line.
 - Strings: Use double quotes for strings, use f-strings for string interpolation
 - Docstrings: Use Numpy style for docstrings, include type hints in docstrings
 - Comments: Use comments to explain complex code, avoid obvious comments
