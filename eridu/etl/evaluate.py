@@ -83,6 +83,21 @@ def load_model(model_path: Optional[str] = None, use_gpu: bool = True) -> Senten
     else:
         print(f"Model not found at: {model_path}")
 
+        # Try without entity type suffix (for backward compatibility)
+        base_path = (
+            model_path.rsplit("-", 1)[0]
+            if model_path.endswith(("-companies", "-people", "-addresses"))
+            else None
+        )
+        if base_path and os.path.exists(base_path):
+            try:
+                print(f"Trying model path without entity type suffix: {base_path}")
+                model = SentenceTransformer(base_path, device=device)
+                print(f"Successfully loaded model from {base_path}")
+                return model
+            except Exception as e:
+                print(f"Error loading model from {base_path}: {e}")
+
     # Fallback to HuggingFace Hub
     print(
         f"Could not load model from {model_path}. "
@@ -122,6 +137,23 @@ def load_test_data(model_path: Optional[str] = None) -> pd.DataFrame:
     if os.path.exists(results_path):
         print(f"Test split not found, using test results from: {results_path}")
         return pd.read_parquet(results_path)
+
+    # Try without entity type suffix (for backward compatibility)
+    base_path = (
+        model_path.rsplit("-", 1)[0]
+        if model_path.endswith(("-companies", "-people", "-addresses"))
+        else None
+    )
+    if base_path:
+        test_path_base = os.path.join(base_path, "test_split.parquet")
+        if os.path.exists(test_path_base):
+            print(f"Loading test data from base path: {test_path_base}")
+            return pd.read_parquet(test_path_base)
+
+        results_path_base = os.path.join(base_path, "test_results.parquet")
+        if os.path.exists(results_path_base):
+            print(f"Test split not found, using test results from base path: {results_path_base}")
+            return pd.read_parquet(results_path_base)
 
     # If still not found, raise error
     raise FileNotFoundError(
