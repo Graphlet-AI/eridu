@@ -21,7 +21,7 @@ from eridu.etl.analyze import (  # noqa: E402
     analyze_cluster_quality,
     analyze_cluster_results,
 )
-from eridu.etl.filter import filter_pairs  # noqa: E402
+from eridu.etl.filter import filter_pairs, filter_statements_to_addresses  # noqa: E402
 
 
 def get_model_path_for_entity_type(entity_type: Optional[str] = None) -> str:
@@ -200,7 +200,13 @@ def etl_report(parquet_path: str, truncate: int) -> None:
     generate_pairs_report(parquet_path, truncate)
 
 
-@etl.command(name="filter", context_settings={"show_default": True})
+@etl.group(cls=OrderedGroup, context_settings={"show_default": True})
+def filter() -> None:
+    """Filter commands for data processing."""
+    pass
+
+
+@filter.command(name="pairs", context_settings={"show_default": True})
 @click.option(
     "--input",
     "--input-path",
@@ -217,10 +223,38 @@ def etl_report(parquet_path: str, truncate: int) -> None:
     show_default=True,
     help="Directory to save the filtered Parquet files",
 )
-def etl_filter(input: str, output: str) -> None:
+def filter_pairs_cmd(input: str, output: str) -> None:
     """Filter entity pairs data to exclude sources starting with 'Q'."""
 
     filter_pairs(input, output)
+
+
+@filter.command(name="addresses", context_settings={"show_default": True})
+@click.option(
+    "--statements-path",
+    default="./data/statements.csv",
+    type=click.Path(exists=True, readable=True),
+    show_default=True,
+    help="Path to the statements.csv file",
+)
+@click.option(
+    "--output",
+    "--output-path",
+    default="./data/addresses.yml",
+    type=click.Path(writable=True),
+    show_default=True,
+    help="Path to output YAML file for address pairs",
+)
+@click.option(
+    "--max-pairs",
+    default=100,
+    show_default=True,
+    help="Maximum number of address pairs to generate",
+)
+def filter_addresses_cmd(statements_path: str, output: str, max_pairs: int) -> None:
+    """Filter statements.csv to create address training pairs in YAML format."""
+
+    filter_statements_to_addresses(statements_path, output, max_pairs)
 
 
 @cli.group(cls=OrderedGroup, context_settings={"show_default": True})
@@ -726,6 +760,12 @@ def cluster_split(
     show_default=True,
     help="Number of steps between logging loss metrics to WandB",
 )
+@click.option(
+    "--margin",
+    default=0.5,
+    show_default=True,
+    help="Margin for contrastive loss function",
+)
 def train(
     model: str,
     input: str,
@@ -751,6 +791,7 @@ def train(
     post_sample_pct: float,
     max_grad_norm: float,
     gate_stats_steps: int,
+    margin: float,
 ) -> None:
     """Fine-tune a sentence transformer (SBERT) model for entity matching."""
     # Validate that FP16 and quantization are not both enabled
@@ -801,6 +842,7 @@ def train(
     click.echo(f"Post-sample percentage: {post_sample_pct}")
     click.echo(f"Max gradient norm: {max_grad_norm}")
     click.echo(f"Gate stats steps: {gate_stats_steps}")
+    click.echo(f"Margin: {margin}")
     click.echo(f"W&B Project: {wandb_project}")
     click.echo(f"W&B Entity: {wandb_entity}")
 
@@ -822,6 +864,7 @@ def train(
     os.environ["POST_SAMPLE_PCT"] = str(post_sample_pct)
     os.environ["MAX_GRAD_NORM"] = str(max_grad_norm)
     os.environ["GATE_STATS_STEPS"] = str(gate_stats_steps)
+    os.environ["MARGIN"] = str(margin)
     os.environ["WANDB_PROJECT"] = wandb_project
     os.environ["WANDB_ENTITY"] = wandb_entity
     os.environ["USE_GPU"] = "true" if use_gpu else "false"

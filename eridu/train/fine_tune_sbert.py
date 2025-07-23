@@ -106,6 +106,7 @@ USE_RESAMPLING: bool = os.environ.get("USE_RESAMPLING", "True").lower() == "true
 POST_SAMPLE_PCT: float = float(os.environ.get("POST_SAMPLE_PCT", "0.10"))
 MAX_GRAD_NORM: float = float(os.environ.get("MAX_GRAD_NORM", "1.0"))
 GATE_STATS_STEPS: int = int(os.environ.get("GATE_STATS_STEPS", "100"))
+MARGIN: float = float(os.environ.get("MARGIN", "0.5"))
 
 # Get Weights & Biases configuration from environment variables
 WANDB_PROJECT: str = os.environ.get("WANDB_PROJECT", "eridu")
@@ -135,6 +136,7 @@ wandb.init(
         "random_seed": RANDOM_SEED,
         "warmup_ratio": WARMUP_RATIO,
         "max_grad_norm": MAX_GRAD_NORM,
+        "margin": MARGIN,
         "save_strategy": os.environ.get("SAVE_STRATEGY", "epoch"),
         "eval_strategy": os.environ.get("EVAL_STRATEGY", "epoch"),
         "sbert_model": SBERT_MODEL,
@@ -436,7 +438,7 @@ wandb.log(
 
 loss: MetricsContextAdaptiveContrastiveLoss = MetricsContextAdaptiveContrastiveLoss(
     model=sbert_model,
-    margin=0.5,  # Margin for contrastive loss
+    margin=MARGIN,  # Margin for contrastive loss
     gate_scale=5.0,  # Scale for the gate function
 )
 

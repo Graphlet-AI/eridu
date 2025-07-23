@@ -278,24 +278,27 @@ wandb login
 # I needed to increase the batch size to utilize A100 GPUs' 40GB GPU RAM
 # Using 3 epochs with all the company data
 # Using a weight decay of 0.01 for regularization
+# Using a margin of 0.75 for contrastive loss
 # Using a random seed of 31337 for reproducibility
 # Using warmup ratio of 0.1 for learning rate schedule
 # Using epoch-based save and evaluation strategy
-# Using learning rate of 3e-5 for optimization
+# Using learning rate of 1e-5 for optimization
 # Using FP16 mixed precision for faster training
-eridu train --use-gpu \
+# Using a sample fraction of 1.0 to use the entire dataset
+nohup eridu train --use-gpu \
             --batch-size 32 \
-            --epochs 3 \
+            --epochs 1 \
             --patience 1 \
             --weight-decay 0.01 \
+            --margin 0.75 \
             --random-seed 31337 \
             --warmup-ratio 0.1 \
-            --learning-rate 3e-5 \
+            --learning-rate 1e-5 \
             --save-strategy epoch \
             --eval-strategy epoch \
             --sample-fraction 1.0 \
             --output data/output/companies \
-            --data-type companies
+            --data-type companies &
 ```
 
 ## License
