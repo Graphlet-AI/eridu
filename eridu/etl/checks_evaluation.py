@@ -336,10 +336,10 @@ def save_results_to_csv(
 
 def generate_checks_report(  # noqa: C901
     checks_path: str,
+    entity_type: str,
     model_path: Optional[str] = None,
     use_gpu: bool = True,
     threshold: float = 0.5,
-    entity_type: str = "company",
     save_csv: bool = False,
     output_dir: str = "data/evaluation_results",
 ) -> None:

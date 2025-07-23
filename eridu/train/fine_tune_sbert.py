@@ -17,6 +17,7 @@ from datasets import Dataset  # type: ignore
 from scipy.stats import iqr
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
 from sentence_transformers.evaluation import BinaryClassificationEvaluator
+from sentence_transformers.losses import ContrastiveLoss
 from sentence_transformers.model_card import SentenceTransformerModelCardData
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sklearn.metrics import (  # type: ignore
@@ -33,7 +34,8 @@ from transformers import EarlyStoppingCallback, TrainerCallback
 import wandb
 from eridu.train.callbacks import ResamplingCallback
 from eridu.train.dataset import ResamplingDataset
-from eridu.train.loss import MetricsContextAdaptiveContrastiveLoss
+
+# from eridu.train.loss import MetricsContextAdaptiveContrastiveLoss
 from eridu.train.utils import (
     compute_sbert_metrics,
     sbert_compare,
@@ -426,7 +428,7 @@ wandb.log(
 #
 
 # # This will effectively train the embedding model. MultipleNegativesRankingLoss did not work.
-# loss: losses.ContrastiveLoss = losses.ContrastiveLoss(model=sbert_model)
+loss: ContrastiveLoss = ContrastiveLoss(model=sbert_model, margin=MARGIN)
 
 # # Use MetricsOnlineContrastiveLoss for detailed loss tracking
 # loss: MetricsOnlineContrastiveLoss = MetricsOnlineContrastiveLoss(
@@ -436,11 +438,11 @@ wandb.log(
 #     gate_stats_steps=GATE_STATS_STEPS,
 # )
 
-loss: MetricsContextAdaptiveContrastiveLoss = MetricsContextAdaptiveContrastiveLoss(
-    model=sbert_model,
-    margin=MARGIN,  # Margin for contrastive loss
-    gate_scale=5.0,  # Scale for the gate function
-)
+# loss: MetricsContextAdaptiveContrastiveLoss = MetricsContextAdaptiveContrastiveLoss(
+#     model=sbert_model,
+#     margin=MARGIN,  # Margin for contrastive loss
+#     gate_scale=5.0,  # Scale for the gate function
+# )
 
 # Set lots of options to reduce memory usage and improve training speed
 sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingArguments(

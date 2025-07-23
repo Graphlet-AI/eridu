@@ -30,7 +30,7 @@ def get_device(use_gpu: bool = True) -> str:
 
 
 def load_model(model_path: str, device: str) -> Optional[SentenceTransformer]:
-    """Load a SentenceTransformer model from disk.
+    """Load a SentenceTransformer model from disk with backward compatibility.
 
     Args:
         model_path: Path to the model directory
@@ -39,13 +39,26 @@ def load_model(model_path: str, device: str) -> Optional[SentenceTransformer]:
     Returns:
         The loaded model or None if an error occurred
     """
-    if not os.path.exists(model_path):
-        return None
+    # Try the provided path first
+    if os.path.exists(model_path):
+        try:
+            return SentenceTransformer(model_path, device=device)
+        except Exception:
+            pass
 
-    try:
-        return SentenceTransformer(model_path, device=device)
-    except Exception:
-        return None
+    # Try without entity type suffix for backward compatibility
+    base_path = (
+        model_path.rsplit("-", 1)[0]
+        if model_path.endswith(("-companies", "-people", "-addresses"))
+        else None
+    )
+    if base_path and os.path.exists(base_path):
+        try:
+            return SentenceTransformer(base_path, device=device)
+        except Exception:
+            pass
+
+    return None
 
 
 def compare_names(

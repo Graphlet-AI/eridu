@@ -15,6 +15,8 @@ from sklearn.manifold import TSNE  # type: ignore
 from sklearn.metrics.pairwise import cosine_distances  # type: ignore
 from sklearn.preprocessing import normalize  # type: ignore
 
+from eridu.utils import get_model_path_for_entity_type
+
 # Suppress SyntaxWarnings from HDBSCAN library - these are from the library itself, not our code
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 # Suppress sklearn deprecation warnings
@@ -134,10 +136,10 @@ def _compute_distance_metrics(
 
 def cluster_names(  # noqa: C901
     input_path: str,
+    entity_type: str,
     image_dir: str = "./images",
     output_dir: str = "./data",
     model_name: Optional[str] = None,
-    entity_type: str = "companies",
     sample_size: Optional[int] = None,
     min_cluster_size: int = 5,
     min_samples: int = 3,
@@ -172,10 +174,9 @@ def cluster_names(  # noqa: C901
     random_seed : int, optional
         Random seed for reproducibility, by default 31337
     """
-    # If model_name not provided, construct it based on entity_type
+    # If model_name not provided, get it based on entity_type using centralized function
     if model_name is None:
-        base_model = "data/fine-tuned-sbert-sentence-transformers-paraphrase-multilingual-MiniLM-L12-v2-original-adafactor"
-        model_name = f"{base_model}-{entity_type}"
+        model_name = get_model_path_for_entity_type(entity_type)
         print(f"Using model: {model_name}")
 
     print(f"Loading data from {input_path}")

@@ -7,37 +7,19 @@ from importlib import import_module
 from pathlib import Path
 from typing import Optional
 
+import click
+import pandas as pd
+import requests
+from tqdm import tqdm
+
+from eridu.cluster import cluster_names, cluster_names_bert
+from eridu.etl import evaluate as evaluate_module
+from eridu.etl.analyze import analyze_cluster_quality, analyze_cluster_results
+from eridu.etl.filter import filter_pairs, filter_statements_to_addresses
+from eridu.utils import get_model_path_for_entity_type
+
 # Suppress SyntaxWarnings from HDBSCAN library
 warnings.filterwarnings("ignore", category=SyntaxWarning)
-
-import click  # noqa: E402
-import pandas as pd  # noqa: E402
-import requests  # noqa: E402
-from tqdm import tqdm  # noqa: E402
-
-from eridu.cluster import cluster_names, cluster_names_bert  # noqa: E402
-from eridu.etl import evaluate as evaluate_module  # noqa: E402
-from eridu.etl.analyze import (  # noqa: E402
-    analyze_cluster_quality,
-    analyze_cluster_results,
-)
-from eridu.etl.filter import filter_pairs, filter_statements_to_addresses  # noqa: E402
-
-
-def get_model_path_for_entity_type(entity_type: Optional[str] = None) -> str:
-    """Get the appropriate model path based on entity type.
-
-    Args:
-        entity_type: The entity type (people, companies, addresses, or None for default)
-
-    Returns:
-        The model path including entity type
-    """
-    base_model = "data/fine-tuned-sbert-sentence-transformers-paraphrase-multilingual-MiniLM-L12-v2-original-adafactor"
-    if entity_type:
-        return f"{base_model}-{entity_type}"
-    # Default to companies model for backward compatibility
-    return f"{base_model}-companies"
 
 
 def _download_with_progress(url: str, path: Path, desc: str) -> bool:
@@ -280,7 +262,8 @@ def compute() -> None:
 @click.option(
     "--data-type",
     type=click.Choice(["people", "companies", "addresses"]),
-    default=None,
+    default="companies",
+    show_default=True,
     help="Type of data to cluster (determines default input file if --input not specified)",
 )
 @click.option(
@@ -334,7 +317,7 @@ def compute() -> None:
 )
 def compute_embed(
     input: Optional[str],
-    data_type: Optional[str],
+    data_type: str,
     image_dir: str,
     output_dir: str,
     model: Optional[str],
@@ -354,8 +337,6 @@ def compute_embed(
             input = "./data/filtered/companies.parquet"
         elif data_type == "addresses":
             input = "./data/filtered/addresses.parquet"
-        else:
-            input = "./data/pairs-all.parquet"
         click.echo(f"Using input path: {input}")
 
     # Set default model path based on data_type if not specified
@@ -363,12 +344,19 @@ def compute_embed(
         model = get_model_path_for_entity_type(data_type)
         click.echo(f"Using model: {model}")
 
+    # Input should be set at this point
+    if input is None:
+        raise ValueError(
+            "Input path is None after default assignment. "
+            f"Data type: {data_type}, Expected path should have been set."
+        )
+
     cluster_names(
         input_path=input,
+        entity_type=data_type,
         image_dir=image_dir,
         output_dir=output_dir,
         model_name=model,
-        entity_type=data_type if data_type else "companies",
         sample_size=sample_size,
         min_cluster_size=min_cluster_size,
         min_samples=min_samples,
@@ -389,7 +377,8 @@ def compute_embed(
 @click.option(
     "--data-type",
     type=click.Choice(["people", "companies", "addresses"]),
-    default=None,
+    default="companies",
+    show_default=True,
     help="Type of data to cluster (determines default input file if --input not specified)",
 )
 @click.option(
@@ -459,7 +448,7 @@ def compute_embed(
 )
 def compute_token(
     input: Optional[str],
-    data_type: Optional[str],
+    data_type: str,
     image_dir: str,
     output_dir: str,
     model: str,
@@ -482,12 +471,17 @@ def compute_token(
             input = "./data/filtered/companies.parquet"
         elif data_type == "addresses":
             input = "./data/filtered/addresses.parquet"
-        else:
-            input = "./data/pairs-all.parquet"
         click.echo(f"Using input path: {input}")
 
     # Parse ngram_range from string
     ngram_min, ngram_max = map(int, ngram_range.split(","))
+
+    # Input should be set at this point
+    if input is None:
+        raise ValueError(
+            "Input path is None after default assignment. "
+            f"Data type: {data_type}, Expected path should have been set."
+        )
 
     cluster_names_bert(
         input_path=input,
@@ -889,7 +883,14 @@ def train(
 @click.option(
     "--model-path",
     default=None,
-    help="Path to the fine-tuned SentenceTransformer model directory (defaults to companies model)",
+    help="Path to the fine-tuned SentenceTransformer model directory",
+)
+@click.option(
+    "--data-type",
+    type=click.Choice(["people", "companies", "addresses"]),
+    default="companies",
+    show_default=True,
+    help="Type of entities being compared (used to select appropriate model if --model-path not specified)",
 )
 @click.option(
     "--use-gpu/--no-gpu",
@@ -897,7 +898,9 @@ def train(
     show_default=True,
     help="Whether to use GPU acceleration for inference",
 )
-def compare(name1: str, name2: str, model_path: Optional[str], use_gpu: bool) -> None:
+def compare(
+    name1: str, name2: str, model_path: Optional[str], data_type: str, use_gpu: bool
+) -> None:
     """Compare two names using the fine-tuned SentenceTransformer model.
 
     Computes the similarity score between NAME1 and NAME2 using
@@ -907,9 +910,9 @@ def compare(name1: str, name2: str, model_path: Optional[str], use_gpu: bool) ->
     """
     from eridu.etl.compare import compare_names
 
-    # Use default companies model if not specified
+    # Use data-type specific model if model path not specified
     if model_path is None:
-        model_path = get_model_path_for_entity_type("companies")
+        model_path = get_model_path_for_entity_type(data_type)
 
     similarity, success = compare_names(name1, name2, model_path, use_gpu)
 
@@ -1028,7 +1031,7 @@ def evaluate_checks(
             checks_path = "./data/checks.yml"
             click.echo(f"Using checks file: {checks_path}")
 
-    generate_checks_report(checks_path, model_path, use_gpu, threshold, entity_type, save_csv=True)
+    generate_checks_report(checks_path, entity_type, model_path, use_gpu, threshold, save_csv=True)
 
 
 if __name__ == "__main__":

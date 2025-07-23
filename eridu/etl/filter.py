@@ -49,7 +49,8 @@ def filter_pairs(input_path: str, output_path: str) -> None:
         click.echo(f"Initial record count: {initial_count:,}")
 
         # Apply filter and select columns
-        filtered_df = pairs_df.filter(~F.col("source").startswith("Q"))
+        # filtered_df = pairs_df.filter(~F.col("source").startswith("Q"))
+        filtered_df = pairs_df
 
         # Remove duplicates based on key fields
         duplicate_cols = ["left_name", "right_name"]
@@ -92,7 +93,7 @@ def filter_pairs(input_path: str, output_path: str) -> None:
 
         companies_df = (
             filtered_df.filter(
-                (F.col("left_category") == "ORG") & (F.col("right_category") == "ORG")
+                (F.col("left_category") == "ORG") | (F.col("right_category") == "ORG")
             )
             # .unionAll(
             #     filtered_df.filter(
