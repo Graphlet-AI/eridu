@@ -33,7 +33,7 @@ from transformers import EarlyStoppingCallback, TrainerCallback
 import wandb
 from eridu.train.callbacks import ResamplingCallback
 from eridu.train.dataset import ResamplingDataset
-from eridu.train.loss import ContextAdaptiveContrastiveLoss
+from eridu.train.loss import MetricsContextAdaptiveContrastiveLoss
 from eridu.train.utils import (
     compute_sbert_metrics,
     sbert_compare,
@@ -434,7 +434,7 @@ wandb.log(
 #     gate_stats_steps=GATE_STATS_STEPS,
 # )
 
-loss: ContextAdaptiveContrastiveLoss = ContextAdaptiveContrastiveLoss(
+loss: MetricsContextAdaptiveContrastiveLoss = MetricsContextAdaptiveContrastiveLoss(
     model=sbert_model,
     margin=0.5,  # Margin for contrastive loss
     gate_scale=5.0,  # Scale for the gate function
