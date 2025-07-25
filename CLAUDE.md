@@ -44,6 +44,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Separate logic from the CLI - separate the logic under `eridu` and sub-modules from the command line interface (CLI) code in `eridu.cli`. The CLI should only handle input/output from/to the user and should not contain any business logic. ETL code should go in `eridu.etl`, training code should go in `eridu.train` and neither should have logic in the CLI. The CLI should only call the ETL, training and other code and handle input/output.
 - Help strings - never put the default option values in the help strings. The help strings should only describe what the option does, not what the default value is. The default values are already documented in the `config.yml` file and will be printed via the `@click.command(context_settings={"show_default": True})` decorator of each Click command.
 - PySpark - Limit the number of functions within scripts that control dataflow in Spark scripts. We prefer a more linear flow. This only applies to Spark code.
+- PySpark - SparkSessions should be created BELOW any imports. Do not create SparkSessions at the top of the file.
 - Flake8 - fix flake8 errors without being asked and without my verification.
 - Black - fix black errors without being asked and without my verification.
 - Isort - fix isort errors without being asked and without my verification.
