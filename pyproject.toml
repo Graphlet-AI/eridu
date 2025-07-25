@@ -86,6 +86,8 @@ llvmlite = "^0.43.0"
 cudf-cu12 = { version = "^25.6.0", source = "rapids" }
 cuml-cu12 = { version = "^25.6.0", source = "rapids" }
 cleanco = "^2.3"
+stop-words = "^2018.7.23"
+langdetect = "^1.0.9"
 
 [tool.poetry.group.dev.dependencies]
 black = { version = "^25.1.0", extras = ["jupyter"] }
