@@ -13,6 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Code Style
 
+- KISS: KEEP IT SIMPLE STUPID. Do not over-engineer solutions. ESPECIALLY for Spark / PySpark.
 - Line length: 100 characters
 - Python version: 3.12
 - Formatter: black with isort (profile=black)
