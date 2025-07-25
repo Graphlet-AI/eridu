@@ -2668,6 +2668,22 @@ files = [
 ]
 
 [[package]]
+name = "langdetect"
+version = "1.0.9"
+description = "Language detection library ported from Google's language-detection."
+optional = false
+python-versions = "*"
+groups = ["main"]
+markers = "platform_machine == \"aarch64\" or platform_machine == \"x86_64\" or platform_machine != \"aarch64\" and platform_machine != \"x86_64\""
+files = [
+    {file = "langdetect-1.0.9-py2-none-any.whl", hash = "sha256:7cbc0746252f19e76f77c0b1690aadf01963be835ef0cd4b56dddf2a8f1dfc2a"},
+    {file = "langdetect-1.0.9.tar.gz", hash = "sha256:cbc1fef89f8d062739774bd51eda3da3274006b3661d199c2655f6b3f6d605a0"},
+]
+
+[package.dependencies]
+six = "*"
+
+[[package]]
 name = "libcudf-cu12"
 version = "25.6.0"
 description = "cuDF - GPU Dataframe (C++)"
@@ -6246,6 +6262,18 @@ pure-eval = "*"
 tests = ["cython", "littleutils", "pygments", "pytest", "typeguard"]
 
 [[package]]
+name = "stop-words"
+version = "2018.7.23"
+description = "Get list of common stop words in various languages in Python"
+optional = false
+python-versions = "*"
+groups = ["main"]
+markers = "platform_machine == \"aarch64\" or platform_machine == \"x86_64\" or platform_machine != \"aarch64\" and platform_machine != \"x86_64\""
+files = [
+    {file = "stop-words-2018.7.23.tar.gz", hash = "sha256:6df3ad5f5de697daa437e4445c86c73604e6bc138dd0dc0fac55664aa4e6b03e"},
+]
+
+[[package]]
 name = "sympy"
 version = "1.14.0"
 description = "Computer algebra system (CAS) in Python"
@@ -7300,4 +7328,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "8aaf86f1ae6c6bc5681e0b58941b3c0c024955fa1c490981ceb681f4338e9944"
+content-hash = "49ea2b403635f79d7c52a31aa892737d4385ee68c4c33e6b991492a39e6de1f4"
