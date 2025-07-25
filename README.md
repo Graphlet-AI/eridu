@@ -286,21 +286,21 @@ wandb login
 # Using FP16 mixed precision for faster training
 # Using a sample fraction of 0.5 to use half the dataset
 nohup eridu train \
-    --model sentence-transformers/all-MiniLM-L12-v2 \
+    --model "intfloat/multilingual-e5-base" \
     --use-gpu \
-    --batch-size 16 \
+    --fp16 \
+    --batch-size 32 \
     --epochs 1 \
     --patience 1 \
-    --weight-decay 0.05 \
-    --margin 0.95 \
+    --weight-decay 0.01 \
+    --margin 0.5 \
     --random-seed 31337 \
     --warmup-ratio 0.1 \
     --learning-rate 1e-5 \
-    --fp16 \
     --save-strategy epoch \
     --eval-strategy epoch \
-    --sample-fraction 1.0 \
-    --post-sample-pct 0.01 \ 
+    --sample-fraction 0.15 \
+    --post-sample-pct 0.01 \
     --output data/output/companies \
     --data-type companies &
 ```
