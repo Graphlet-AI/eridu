@@ -45,6 +45,9 @@ class ContextAdaptiveContrastiveLoss(nn.Module):
         output1_truncated = output1[:, :min_length, :]  # (b, min_len, d)
         output2_truncated = output2[:, :min_length, :]  # (b, min_len, d)
 
+        # attention_mask_1 = output1_dict["attention_mask"]
+        # attention_mask_2 = output2_dict["attention_mask"]
+
         local_diff = 1 - F.cosine_similarity(output1_truncated, output2_truncated, dim=-1).mean(
             dim=1
         )

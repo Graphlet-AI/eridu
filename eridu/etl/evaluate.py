@@ -17,16 +17,7 @@ from sklearn.metrics import (  # type: ignore
 )
 
 from eridu.train.utils import sbert_compare_multiple
-
-# Constants from fine_tune_sbert.py
-SBERT_MODEL: str = os.environ.get(
-    "SBERT_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-)
-VARIANT: str = os.environ.get("VARIANT", "original")
-OPTIMIZER: str = os.environ.get("OPTIMIZER", "adafactor")
-DATA_TYPE: str = os.environ.get("DATA_TYPE", "companies")
-MODEL_SAVE_NAME: str = (SBERT_MODEL + "-" + VARIANT + "-" + OPTIMIZER).replace("/", "-")
-SBERT_OUTPUT_FOLDER: str = f"data/fine-tuned-sbert-{MODEL_SAVE_NAME}-{DATA_TYPE}"
+from eridu.utils import get_model_config
 
 # Fallback model from HuggingFace Hub
 FALLBACK_MODEL: str = "Graphlet-AI/eridu"
@@ -64,7 +55,8 @@ def load_model(model_path: Optional[str] = None, use_gpu: bool = True) -> Senten
     """
     # Use default path if none provided
     if model_path is None:
-        model_path = SBERT_OUTPUT_FOLDER
+        config = get_model_config()
+        model_path = config["SBERT_OUTPUT_FOLDER"]
 
     # Determine device
     device = get_device(use_gpu)
@@ -124,7 +116,8 @@ def load_test_data(model_path: Optional[str] = None) -> pd.DataFrame:
     """
     # Determine model path
     if model_path is None:
-        model_path = SBERT_OUTPUT_FOLDER
+        config = get_model_config()
+        model_path = config["SBERT_OUTPUT_FOLDER"]
 
     # Look for test_split.parquet
     test_path = os.path.join(model_path, "test_split.parquet")
@@ -415,7 +408,8 @@ def evaluate_and_print_report(
     # Print report
     print("\nModel Evaluation Report")
     print("=" * 40)
-    print(f"Model: {model_path or SBERT_OUTPUT_FOLDER}")
+    display_model_path = model_path or get_model_config()["SBERT_OUTPUT_FOLDER"]
+    print(f"Model: {display_model_path}")
     print(f"Test data: {len(test_df):,} pairs")
     print(f"Classification threshold: {metrics['threshold']:.4f}")
     print("\nPerformance Metrics:")
@@ -436,7 +430,7 @@ def evaluate_and_print_report(
     print(f"\n{'=' * 80}")
     print("EVALUATION SUMMARY")
     print(f"{'=' * 80}")
-    print(f"Model: {model_path or SBERT_OUTPUT_FOLDER}")
+    print(f"Model: {display_model_path}")
     print(f"Test data: {len(test_df):,} pairs")
     print(f"Classification threshold: {metrics['threshold']:.4f}")
 

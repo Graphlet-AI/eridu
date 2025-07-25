@@ -620,9 +620,8 @@ def cluster_split(
 @cli.command(name="train", context_settings={"show_default": True})
 @click.option(
     "--model",
-    default="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-    show_default=True,
-    help="Base SBERT model to fine-tune",
+    required=True,
+    help="Base SBERT model to fine-tune (e.g., sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2)",
 )
 @click.option(
     "--input",
@@ -788,6 +787,8 @@ def train(
     margin: float,
 ) -> None:
     """Fine-tune a sentence transformer (SBERT) model for entity matching."""
+    click.echo("\n\nNEW TRAINING RUN IS STARTING, PEOPLE...\n\n")
+
     # Validate that FP16 and quantization are not both enabled
     if fp16 and quantization:
         raise click.UsageError(

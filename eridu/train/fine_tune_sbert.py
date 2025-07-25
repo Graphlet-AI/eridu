@@ -73,10 +73,9 @@ pd.set_option("display.max_columns", None)
 
 # Configure sample size and model training parameters from environment or defaults
 SAMPLE_FRACTION: float = float(os.environ.get("SAMPLE_FRACTION", "0.1"))
-SBERT_MODEL: str = os.environ.get(
-    "SBERT_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-)
-# SBERT_MODEL: str = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
+SBERT_MODEL: str | None = os.environ.get("SBERT_MODEL")
+if not SBERT_MODEL:
+    raise ValueError("SBERT_MODEL environment variable must be set. Use --model parameter in CLI.")
 VARIANT: str = os.environ.get("VARIANT", "original")
 OPTIMIZER: str = os.environ.get("OPTIMIZER", "adafactor")
 MODEL_SAVE_NAME: str = (SBERT_MODEL + "-" + VARIANT + "-" + OPTIMIZER).replace("/", "-")
@@ -107,7 +106,7 @@ USE_GRADIENT_CHECKPOINTING: bool = (
 
 # Enable resampling of training data for each epoch when sample fraction < 1.0
 USE_RESAMPLING: bool = os.environ.get("USE_RESAMPLING", "True").lower() == "true"
-POST_SAMPLE_PCT: float = float(os.environ.get("POST_SAMPLE_PCT", "0.10"))
+POST_SAMPLE_PCT: float = float(os.environ.get("POST_SAMPLE_PCT", "0.01"))
 MAX_GRAD_NORM: float = float(os.environ.get("MAX_GRAD_NORM", "1.0"))
 GATE_STATS_STEPS: int = int(os.environ.get("GATE_STATS_STEPS", "100"))
 MARGIN: float = float(os.environ.get("MARGIN", "0.5"))
@@ -351,8 +350,8 @@ print(str(examples_df) + "\n")
 # Evaluate a sample of the evaluation data compared using raw SBERT before fine-tuning
 #
 
-# Use a simple approach for evaluation sampling - use the same sample fraction as for training
-sample_df: pd.DataFrame = eval_df.sample(frac=SAMPLE_FRACTION, random_state=RANDOM_SEED)
+# Use POST_SAMPLE_PCT for evaluation sampling to reduce evaluation time
+sample_df: pd.DataFrame = eval_df.sample(frac=POST_SAMPLE_PCT, random_state=RANDOM_SEED)
 
 # Make sure we have at least a few samples
 if len(sample_df) < 5 and len(eval_df) >= 5:
@@ -609,6 +608,9 @@ except Exception as e:
 
 # Now it's safe to finish wandb
 wandb.finish()
+
+# Print six newlines to space out from next run
+print("\n\n\n\n\n\n")
 
 
 def main() -> None:
