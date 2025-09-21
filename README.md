@@ -1,6 +1,6 @@
 # Eridu
 
-NOTE: this model is a work in progress. It doesn't work yet. It is not yet ready for production use.
+NOTE: this model is a work in progress. The open source version is not yet ready for production use.
 
 Deep fuzzy matching people and company names for multilingual entity resolution using representation learning... that incorporates a deep understanding of people and company names and works _much better_ than string distance methods.
 
