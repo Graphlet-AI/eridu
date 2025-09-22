@@ -37,11 +37,13 @@ print(similarities.numpy())
 
 ## Project Overview
 
-This project is a deep fuzzy matching system for person and company names for entity resolution using representation learning. It is designed to match people and company names across languages and character sets, using a pre-trained text embedding model from HuggingFace that we fine-tune using contrastive learning on 2 million labeled pairs of person and company names from the [Open Sanctions Matcher training data](https://www.opensanctions.org/docs/pairs/). The project includes a command-line interface (CLI) utility for training the model and comparing pairs of names using cosine similarity.
+This project is a deep fuzzy matching system for person and company names for entity resolution using representation learning. It is designed to match people and company names across languages and character sets, using a pre-trained text embedding model from HuggingFace that we fine-tune using contrastive learning on 2 million labeled pairs of person and company names. The project includes a command-line interface (CLI) utility for training the model and comparing pairs of names using cosine similarity.
 
 Matching people and company names is an intractable problem using traditional parsing based methods: there is too much variation across cultures and jurisdictions to solve the problem by humans programming. This results in complex, cost prohibitive enterprise solutions for name matching like [IBM InfoSphere Global Name Management](https://www.ibm.com/products/ibm-infosphere-global-name-management). Machine learning is used on problems like this one of cultural relevance, where the time to manually programming a solution appproaches infinity, to automatically write a program. Since 2008 there has been an explosion of deep learning methods that automate feature engineering via representation learning methods including such as text embeddings.
 
 This project loads the pre-trained [paraphrase-multilingual-MiniLM-L12-v2](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) paraphrase model from HuggingFace and fine-tunes it for the name matching task using contrastive learning on more than 2 million labeled pairs of matching and non-matching (just as important) person and company names from the [Open Sanctions Matcher training data](https://www.opensanctions.org/docs/pairs/) to create a deep fuzzy matching system for entity resolution.
+
+Note: currently testing [Qwen3-Embedding-4B](https://huggingface.co/Qwen/Qwen3-Embedding-4B) as the original MiniLM models I used initially are obsolete and perform poorly compared to Qwen3 embeddings. The 4B embedding is second place across the MTEB leaderboard, right behind 8B but will run on a GPU(s) with 16GB of RAM.
 
 This model is available on HuggingFace Hub as [Graphlet-AI/eridu](https://huggingface.co/Graphlet-AI/eridu) and can be used in any Python project using the [Sentence Transformers](https://sbert.net/) library in five lines of code. The model is designed to be used for entity resolution tasks, such as matching people and company names across different languages and character sets when matching records.
 
@@ -229,10 +231,6 @@ We welcome contributions to this project! Please follow the guidelines below:
 pre-commit install
 ```
 
-### Claude Code
-
-This project was written by Russell Jurney with the help of [Claude Code](https://claude.ai/code), a large language model (LLM) from Anthropic. This is made possible by the permissions in [.claude/settings.json](.claude/settings.json) and configuration in [CLAUDE.md](CLAUDE.md). You will want to 'fine-tune' them both to your requirements. Please be sure to double check that you are comfortable with the permissions in `.claude/settings.json` before using this project, as there are security considations. I gave it the ability to perform read-only tasks without my intervention, but some minor write operations are enabled (like `touch`, `git add`, etc.) but not `git commit`.
-
 ## Pre-Trained Model vs Fine-Tuned Model
 
 The pre-trained model is the [paraphrase-multilingual-MiniLM-L12-v2](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) model from HuggingFace.
@@ -245,7 +243,7 @@ The pre-trained model is the [paraphrase-multilingual-MiniLM-L12-v2](https://hug
 3         Ben Lorica               罗瑞卡    0.764319
 ```
 
-The fine-tuned model is the same model, but trained on 2 million labeled pairs of person and company names from the [Open Sanctions Matcher training data](https://www.opensanctions.org/docs/pairs/). The fine-tuned model is much better at matching names than the pre-trained model.
+The fine-tuned model is the same model, but trained on 2 million labeled pairs of person and company names. The fine-tuned model could be much better at matching names than the pre-trained model.
 
 ```csv
            sentence1         sentence2  similarity
@@ -308,10 +306,6 @@ nohup eridu train \
 ## License
 
 This project is licensed under the [Apache 2.0 License](LICENSE). See the [LICENSE](LICENSE) file for details.
-
-## Acknowledgements
-
-This work is made possible by the [Open Sanctions Matcher training data](https://www.opensanctions.org/docs/pairs/), the [Sentence Transformers Project](https://sbert.net/) and the [HuggingFace](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) community.
 
 ## About Ancient Eridu
 
