@@ -265,7 +265,7 @@ The commands used to train are:
 
 ```bash
 # These are the default arguments...
-eridu download --url "https://storage.googleapis.com/data.opensanctions.org/contrib/sample/pairs-all.csv.gz" --output-dir data
+eridu download --output-dir data
 
 # These are the default arguments...
 eridu etl report --parquet-path data/pairs-all.parquet
