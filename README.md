@@ -204,6 +204,9 @@ curl -sSL https://install.python-poetry.org | python3 -
 ```bash
 # Install dependencies
 poetry install
+
+# Install flash-attn for Qwen3-Embedding-4B, it does not support PEP-517 builds, so no Poetry
+pip install flash-attn --no-build-isolation
 ```
 
 ### Optional: Weights and Biases for Experiment Tracking
@@ -284,10 +287,10 @@ wandb login
 # Using FP16 mixed precision for faster training
 # Using a sample fraction of 0.5 to use half the dataset
 nohup eridu train \
-    --model "intfloat/multilingual-e5-base" \
+    --model "Qwen/Qwen3-Embedding-4B" \
     --use-gpu \
     --fp16 \
-    --batch-size 32 \
+    --batch-size 128 \
     --epochs 1 \
     --patience 1 \
     --weight-decay 0.01 \

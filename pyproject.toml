@@ -88,6 +88,8 @@ cuml-cu12 = { version = "^25.6.0", source = "rapids" }
 cleanco = "^2.3"
 stop-words = "^2018.7.23"
 langdetect = "^1.0.9"
+packaging = "^25.0"
+ninja = "^1.13.0"
 
 [tool.poetry.group.dev.dependencies]
 black = { version = "^25.1.0", extras = ["jupyter"] }
