@@ -287,7 +287,7 @@ nohup eridu train \
     --model "intfloat/multilingual-e5-base" \
     --use-gpu \
     --batch-size 16 \
-    --epochs 3 \
+    --epochs 5 \
     --patience 1 \
     --weight-decay 0.01 \
     --margin 0.5 \
@@ -296,7 +296,7 @@ nohup eridu train \
     --learning-rate 1e-5 \
     --save-strategy epoch \
     --eval-strategy epoch \
-    --sample-fraction 0.15 \
+    --sample-fraction 0.01 \
     --post-sample-pct 0.01 \
     --output data/output/companies \
     --data-type companies &
