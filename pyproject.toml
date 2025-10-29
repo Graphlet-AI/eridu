@@ -63,7 +63,7 @@ version = "0.1.6"
 "HuggingFace Hub" = "https://huggingface.co/Graphlet-AI/eridu"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = ">=3.12,<3.15"
 ipython = "^9.0.2"
 numpy = "^2.0,<2.1"
 transformers = { version = "^4.51.3", extras = ["torch"] }
@@ -83,8 +83,9 @@ accelerate = "^1.6.0"
 hdbscan = "^0.8.40"
 numba = "^0.60.0"
 llvmlite = "^0.43.0"
-cudf-cu12 = { version = "^25.6.0", source = "rapids" }
-cuml-cu12 = { version = "^25.6.0", source = "rapids" }
+cudf-cu12 = { version = "^25.6.0", source = "rapids", markers = "sys_platform == 'linux'" }
+cuml-cu12 = { version = "^25.6.0", source = "rapids", markers = "sys_platform == 'linux'" }
+torch = "2.9.0"
 cleanco = "^2.3"
 stop-words = "^2018.7.23"
 langdetect = "^1.0.9"
