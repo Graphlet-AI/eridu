@@ -28,7 +28,6 @@ from sklearn.metrics import (  # type: ignore
     roc_auc_score,
 )
 from sklearn.model_selection import GroupKFold  # type: ignore
-from sklearn.model_selection import train_test_split  # type: ignore
 from transformers import EarlyStoppingCallback, TrainerCallback
 
 import wandb
