@@ -73,8 +73,22 @@ class ContextAdaptiveContrastiveLoss(nn.Module):
         pos_mask = labels == 1
         neg_mask = labels == 0
 
-        pos_loss = final_diff[pos_mask].pow(2).sum()
-        neg_loss = F.relu(self.margin - final_diff[neg_mask]).pow(2).sum()
+        # Extract positive and negative differences
+        pos_diffs = final_diff[pos_mask]
+        neg_diffs = final_diff[neg_mask]
+
+        # Handle empty tensors to avoid MPS backend bug
+        # MPS crashes during backpropagation if tensors are empty
+        pos_loss = (
+            pos_diffs.pow(2).sum()
+            if len(pos_diffs) > 0
+            else torch.tensor(0.0, device=final_diff.device, requires_grad=True)
+        )
+        neg_loss = (
+            F.relu(self.margin - neg_diffs).pow(2).sum()
+            if len(neg_diffs) > 0
+            else torch.tensor(0.0, device=final_diff.device, requires_grad=True)
+        )
 
         loss: Tensor = pos_loss + neg_loss
 
@@ -84,9 +98,11 @@ class ContextAdaptiveContrastiveLoss(nn.Module):
             "gate_std": gate.std().item(),
             "global_diff_mean": global_diff.mean().item(),
             "local_diff_mean": local_diff.mean().item(),
-            "pos_loss": pos_loss.item(),
-            "neg_loss": neg_loss.item(),
+            "pos_loss": pos_loss.item() if isinstance(pos_loss, Tensor) else 0.0,
+            "neg_loss": neg_loss.item() if isinstance(neg_loss, Tensor) else 0.0,
             "gate_saturation": ((gate < 0.01) | (gate > 0.99)).float().mean().item(),
+            "num_positives": len(pos_diffs),
+            "num_negatives": len(neg_diffs),
         }
 
         return loss
