@@ -12,7 +12,7 @@ import pandas as pd
 import requests
 from tqdm import tqdm
 
-from eridu.cluster import cluster_names, cluster_names_bert
+# from eridu.cluster import cluster_names, cluster_names_bert
 from eridu.etl import evaluate as evaluate_module
 from eridu.etl.analyze import analyze_cluster_quality, analyze_cluster_results
 from eridu.etl.filter import filter_pairs, filter_statements_to_addresses
@@ -239,382 +239,382 @@ def filter_addresses_cmd(statements_path: str, output: str, max_pairs: int) -> N
     filter_statements_to_addresses(statements_path, output, max_pairs)
 
 
-@cli.group(cls=OrderedGroup, context_settings={"show_default": True})
-def cluster() -> None:
-    """Clustering commands for name entity resolution."""
-    pass
+# @cli.group(cls=OrderedGroup, context_settings={"show_default": True})
+# def cluster() -> None:
+#     """Clustering commands for name entity resolution."""
+#     pass
 
 
-@cluster.group(cls=OrderedGroup, context_settings={"show_default": True})
-def compute() -> None:
-    """Compute clustering using different approaches."""
-    pass
+# @cluster.group(cls=OrderedGroup, context_settings={"show_default": True})
+# def compute() -> None:
+#     """Compute clustering using different approaches."""
+#     pass
 
 
-@compute.command(name="embed", context_settings={"show_default": True})
-@click.option(
-    "--input",
-    "--input-path",
-    default=None,
-    type=click.Path(exists=True, dir_okay=True, readable=True),
-    help="Path to the input Parquet file containing names to cluster (auto-set based on --data-type if not specified)",
-)
-@click.option(
-    "--data-type",
-    type=click.Choice(["people", "companies", "addresses"]),
-    default="companies",
-    show_default=True,
-    help="Type of data to cluster (determines default input file if --input not specified)",
-)
-@click.option(
-    "--image-dir",
-    default="./images",
-    type=click.Path(file_okay=False, dir_okay=True, writable=True),
-    help="Directory to save the visualization PNG file",
-)
-@click.option(
-    "--output-dir",
-    default="./data",
-    type=click.Path(file_okay=False, dir_okay=True, writable=True),
-    help="Directory to save CSV files and embeddings",
-)
-@click.option(
-    "--model",
-    default=None,
-    help="Sentence transformer model to use for embeddings (auto-selected based on data-type if not specified)",
-)
-@click.option(
-    "--sample-size",
-    default=None,
-    type=int,
-    help="Number of names to sample for clustering (use all names if not specified)",
-)
-@click.option(
-    "--min-cluster-size",
-    default=5,
-    help="Minimum cluster size for HDBSCAN clustering",
-)
-@click.option(
-    "--min-samples",
-    default=3,
-    help="Minimum samples parameter for HDBSCAN clustering",
-)
-@click.option(
-    "--cluster-selection-epsilon",
-    default=0.1,
-    type=float,
-    help="HDBSCAN epsilon for cluster selection (higher values = more noise points)",
-)
-@click.option(
-    "--use-gpu/--no-gpu",
-    default=True,
-    help="Whether to use GPU acceleration for embeddings",
-)
-@click.option(
-    "--random-seed",
-    default=31337,
-    help="Random seed for reproducibility",
-)
-def compute_embed(
-    input: Optional[str],
-    data_type: str,
-    image_dir: str,
-    output_dir: str,
-    model: Optional[str],
-    sample_size: Optional[int],
-    min_cluster_size: int,
-    min_samples: int,
-    cluster_selection_epsilon: float,
-    use_gpu: bool,
-    random_seed: int,
-) -> None:
-    """Compute clusters using HDBSCAN on sentence transformer embeddings, with T-SNE for visualization."""
-    # Set default input path based on data_type if not specified
-    if input is None:
-        if data_type == "people":
-            input = "./data/filtered/people.parquet"
-        elif data_type == "companies":
-            input = "./data/filtered/companies.parquet"
-        elif data_type == "addresses":
-            input = "./data/filtered/addresses.parquet"
-        click.echo(f"Using input path: {input}")
+# @compute.command(name="embed", context_settings={"show_default": True})
+# @click.option(
+#     "--input",
+#     "--input-path",
+#     default=None,
+#     type=click.Path(exists=True, dir_okay=True, readable=True),
+#     help="Path to the input Parquet file containing names to cluster (auto-set based on --data-type if not specified)",
+# )
+# @click.option(
+#     "--data-type",
+#     type=click.Choice(["people", "companies", "addresses"]),
+#     default="companies",
+#     show_default=True,
+#     help="Type of data to cluster (determines default input file if --input not specified)",
+# )
+# @click.option(
+#     "--image-dir",
+#     default="./images",
+#     type=click.Path(file_okay=False, dir_okay=True, writable=True),
+#     help="Directory to save the visualization PNG file",
+# )
+# @click.option(
+#     "--output-dir",
+#     default="./data",
+#     type=click.Path(file_okay=False, dir_okay=True, writable=True),
+#     help="Directory to save CSV files and embeddings",
+# )
+# @click.option(
+#     "--model",
+#     default=None,
+#     help="Sentence transformer model to use for embeddings (auto-selected based on data-type if not specified)",
+# )
+# @click.option(
+#     "--sample-size",
+#     default=None,
+#     type=int,
+#     help="Number of names to sample for clustering (use all names if not specified)",
+# )
+# @click.option(
+#     "--min-cluster-size",
+#     default=5,
+#     help="Minimum cluster size for HDBSCAN clustering",
+# )
+# @click.option(
+#     "--min-samples",
+#     default=3,
+#     help="Minimum samples parameter for HDBSCAN clustering",
+# )
+# @click.option(
+#     "--cluster-selection-epsilon",
+#     default=0.1,
+#     type=float,
+#     help="HDBSCAN epsilon for cluster selection (higher values = more noise points)",
+# )
+# @click.option(
+#     "--use-gpu/--no-gpu",
+#     default=True,
+#     help="Whether to use GPU acceleration for embeddings",
+# )
+# @click.option(
+#     "--random-seed",
+#     default=31337,
+#     help="Random seed for reproducibility",
+# )
+# def compute_embed(
+#     input: Optional[str],
+#     data_type: str,
+#     image_dir: str,
+#     output_dir: str,
+#     model: Optional[str],
+#     sample_size: Optional[int],
+#     min_cluster_size: int,
+#     min_samples: int,
+#     cluster_selection_epsilon: float,
+#     use_gpu: bool,
+#     random_seed: int,
+# ) -> None:
+#     """Compute clusters using HDBSCAN on sentence transformer embeddings, with T-SNE for visualization."""
+#     # Set default input path based on data_type if not specified
+#     if input is None:
+#         if data_type == "people":
+#             input = "./data/filtered/people.parquet"
+#         elif data_type == "companies":
+#             input = "./data/filtered/companies.parquet"
+#         elif data_type == "addresses":
+#             input = "./data/filtered/addresses.parquet"
+#         click.echo(f"Using input path: {input}")
 
-    # Set default model path based on data_type if not specified
-    if model is None:
-        model = get_model_path_for_entity_type(data_type)
-        click.echo(f"Using model: {model}")
+#     # Set default model path based on data_type if not specified
+#     if model is None:
+#         model = get_model_path_for_entity_type(data_type)
+#         click.echo(f"Using model: {model}")
 
-    # Input should be set at this point
-    if input is None:
-        raise ValueError(
-            "Input path is None after default assignment. "
-            f"Data type: {data_type}, Expected path should have been set."
-        )
+#     # Input should be set at this point
+#     if input is None:
+#         raise ValueError(
+#             "Input path is None after default assignment. "
+#             f"Data type: {data_type}, Expected path should have been set."
+#         )
 
-    cluster_names(
-        input_path=input,
-        entity_type=data_type,
-        image_dir=image_dir,
-        output_dir=output_dir,
-        model_name=model,
-        sample_size=sample_size,
-        min_cluster_size=min_cluster_size,
-        min_samples=min_samples,
-        cluster_selection_epsilon=cluster_selection_epsilon,
-        use_gpu=use_gpu,
-        random_seed=random_seed,
-    )
-
-
-@compute.command(name="token", context_settings={"show_default": True})
-@click.option(
-    "--input",
-    "--input-path",
-    default=None,
-    type=click.Path(exists=True, dir_okay=True, readable=True),
-    help="Path to the input Parquet file containing names to cluster (auto-set based on --data-type if not specified)",
-)
-@click.option(
-    "--data-type",
-    type=click.Choice(["people", "companies", "addresses"]),
-    default="companies",
-    show_default=True,
-    help="Type of data to cluster (determines default input file if --input not specified)",
-)
-@click.option(
-    "--image-dir",
-    default="./images",
-    type=click.Path(file_okay=False, dir_okay=True, writable=True),
-    help="Directory to save the visualization PNG file",
-)
-@click.option(
-    "--output-dir",
-    default="./data",
-    type=click.Path(file_okay=False, dir_okay=True, writable=True),
-    help="Directory to save CSV files and features",
-)
-@click.option(
-    "--model",
-    default="bert-base-uncased",
-    help="BERT model to use for tokenization",
-)
-@click.option(
-    "--sample-size",
-    default=None,
-    type=int,
-    help="Number of names to sample for clustering (use all names if not specified)",
-)
-@click.option(
-    "--min-cluster-size",
-    default=5,
-    help="Minimum cluster size for HDBSCAN clustering",
-)
-@click.option(
-    "--min-samples",
-    default=3,
-    help="Minimum samples parameter for HDBSCAN clustering",
-)
-@click.option(
-    "--cluster-selection-epsilon",
-    default=0.1,
-    type=float,
-    help="HDBSCAN epsilon for cluster selection (higher values = more noise points)",
-)
-@click.option(
-    "--max-features",
-    default=10000,
-    help="Maximum number of features for TF-IDF vectorizer",
-)
-@click.option(
-    "--min-df",
-    default=2,
-    help="Minimum document frequency for TF-IDF features",
-)
-@click.option(
-    "--max-df",
-    default=0.95,
-    type=float,
-    help="Maximum document frequency for TF-IDF features",
-)
-@click.option(
-    "--ngram-range",
-    default="1,3",
-    help="N-gram range for TF-IDF features (format: min,max)",
-)
-@click.option(
-    "--random-seed",
-    default=31337,
-    help="Random seed for reproducibility",
-)
-def compute_token(
-    input: Optional[str],
-    data_type: str,
-    image_dir: str,
-    output_dir: str,
-    model: str,
-    sample_size: Optional[int],
-    min_cluster_size: int,
-    min_samples: int,
-    cluster_selection_epsilon: float,
-    max_features: int,
-    min_df: int,
-    max_df: float,
-    ngram_range: str,
-    random_seed: int,
-) -> None:
-    """Cluster names using traditional NLP approach with BERT tokenization and TF-IDF."""
-    # Set default input path based on data_type if not specified
-    if input is None:
-        if data_type == "people":
-            input = "./data/filtered/people.parquet"
-        elif data_type == "companies":
-            input = "./data/filtered/companies.parquet"
-        elif data_type == "addresses":
-            input = "./data/filtered/addresses.parquet"
-        click.echo(f"Using input path: {input}")
-
-    # Parse ngram_range from string
-    ngram_min, ngram_max = map(int, ngram_range.split(","))
-
-    # Input should be set at this point
-    if input is None:
-        raise ValueError(
-            "Input path is None after default assignment. "
-            f"Data type: {data_type}, Expected path should have been set."
-        )
-
-    cluster_names_bert(
-        input_path=input,
-        image_dir=image_dir,
-        output_dir=output_dir,
-        model_name=model,
-        sample_size=sample_size,
-        min_cluster_size=min_cluster_size,
-        min_samples=min_samples,
-        cluster_selection_epsilon=cluster_selection_epsilon,
-        max_features=max_features,
-        min_df=min_df,
-        max_df=max_df,
-        ngram_range=(ngram_min, ngram_max),
-        random_seed=random_seed,
-    )
+#     cluster_names(
+#         input_path=input,
+#         entity_type=data_type,
+#         image_dir=image_dir,
+#         output_dir=output_dir,
+#         model_name=model,
+#         sample_size=sample_size,
+#         min_cluster_size=min_cluster_size,
+#         min_samples=min_samples,
+#         cluster_selection_epsilon=cluster_selection_epsilon,
+#         use_gpu=use_gpu,
+#         random_seed=random_seed,
+#     )
 
 
-@cluster.command(name="analyze", context_settings={"show_default": True})
-@click.option(
-    "--csv-path",
-    default="./data/cluster_results.csv",
-    type=click.Path(exists=True, dir_okay=False, readable=True),
-    help="Path to the cluster results CSV file from compute command",
-)
-def cluster_analyze(csv_path: str) -> None:
-    """Analyze clustering results and show examples of names in each cluster."""
-    # Analyze the cluster results
-    analyze_cluster_results(csv_path)
+# @compute.command(name="token", context_settings={"show_default": True})
+# @click.option(
+#     "--input",
+#     "--input-path",
+#     default=None,
+#     type=click.Path(exists=True, dir_okay=True, readable=True),
+#     help="Path to the input Parquet file containing names to cluster (auto-set based on --data-type if not specified)",
+# )
+# @click.option(
+#     "--data-type",
+#     type=click.Choice(["people", "companies", "addresses"]),
+#     default="companies",
+#     show_default=True,
+#     help="Type of data to cluster (determines default input file if --input not specified)",
+# )
+# @click.option(
+#     "--image-dir",
+#     default="./images",
+#     type=click.Path(file_okay=False, dir_okay=True, writable=True),
+#     help="Directory to save the visualization PNG file",
+# )
+# @click.option(
+#     "--output-dir",
+#     default="./data",
+#     type=click.Path(file_okay=False, dir_okay=True, writable=True),
+#     help="Directory to save CSV files and features",
+# )
+# @click.option(
+#     "--model",
+#     default="bert-base-uncased",
+#     help="BERT model to use for tokenization",
+# )
+# @click.option(
+#     "--sample-size",
+#     default=None,
+#     type=int,
+#     help="Number of names to sample for clustering (use all names if not specified)",
+# )
+# @click.option(
+#     "--min-cluster-size",
+#     default=5,
+#     help="Minimum cluster size for HDBSCAN clustering",
+# )
+# @click.option(
+#     "--min-samples",
+#     default=3,
+#     help="Minimum samples parameter for HDBSCAN clustering",
+# )
+# @click.option(
+#     "--cluster-selection-epsilon",
+#     default=0.1,
+#     type=float,
+#     help="HDBSCAN epsilon for cluster selection (higher values = more noise points)",
+# )
+# @click.option(
+#     "--max-features",
+#     default=10000,
+#     help="Maximum number of features for TF-IDF vectorizer",
+# )
+# @click.option(
+#     "--min-df",
+#     default=2,
+#     help="Minimum document frequency for TF-IDF features",
+# )
+# @click.option(
+#     "--max-df",
+#     default=0.95,
+#     type=float,
+#     help="Maximum document frequency for TF-IDF features",
+# )
+# @click.option(
+#     "--ngram-range",
+#     default="1,3",
+#     help="N-gram range for TF-IDF features (format: min,max)",
+# )
+# @click.option(
+#     "--random-seed",
+#     default=31337,
+#     help="Random seed for reproducibility",
+# )
+# def compute_token(
+#     input: Optional[str],
+#     data_type: str,
+#     image_dir: str,
+#     output_dir: str,
+#     model: str,
+#     sample_size: Optional[int],
+#     min_cluster_size: int,
+#     min_samples: int,
+#     cluster_selection_epsilon: float,
+#     max_features: int,
+#     min_df: int,
+#     max_df: float,
+#     ngram_range: str,
+#     random_seed: int,
+# ) -> None:
+#     """Cluster names using traditional NLP approach with BERT tokenization and TF-IDF."""
+#     # Set default input path based on data_type if not specified
+#     if input is None:
+#         if data_type == "people":
+#             input = "./data/filtered/people.parquet"
+#         elif data_type == "companies":
+#             input = "./data/filtered/companies.parquet"
+#         elif data_type == "addresses":
+#             input = "./data/filtered/addresses.parquet"
+#         click.echo(f"Using input path: {input}")
+
+#     # Parse ngram_range from string
+#     ngram_min, ngram_max = map(int, ngram_range.split(","))
+
+#     # Input should be set at this point
+#     if input is None:
+#         raise ValueError(
+#             "Input path is None after default assignment. "
+#             f"Data type: {data_type}, Expected path should have been set."
+#         )
+
+#     cluster_names_bert(
+#         input_path=input,
+#         image_dir=image_dir,
+#         output_dir=output_dir,
+#         model_name=model,
+#         sample_size=sample_size,
+#         min_cluster_size=min_cluster_size,
+#         min_samples=min_samples,
+#         cluster_selection_epsilon=cluster_selection_epsilon,
+#         max_features=max_features,
+#         min_df=min_df,
+#         max_df=max_df,
+#         ngram_range=(ngram_min, ngram_max),
+#         random_seed=random_seed,
+#     )
 
 
-@cluster.command(name="quality", context_settings={"show_default": True})
-@click.option(
-    "--csv-path",
-    default="./data/cluster_results.csv",
-    type=click.Path(exists=True, dir_okay=False, readable=True),
-    help="Path to the cluster results CSV file from compute command",
-)
-def cluster_quality(csv_path: str) -> None:
-    """Analyze cluster quality using distance metrics."""
-    # Load the cluster results and analyze quality
-    df = pd.read_csv(csv_path)
-    analyze_cluster_quality(df)
+# @cluster.command(name="analyze", context_settings={"show_default": True})
+# @click.option(
+#     "--csv-path",
+#     default="./data/cluster_results.csv",
+#     type=click.Path(exists=True, dir_okay=False, readable=True),
+#     help="Path to the cluster results CSV file from compute command",
+# )
+# def cluster_analyze(csv_path: str) -> None:
+#     """Analyze clustering results and show examples of names in each cluster."""
+#     # Analyze the cluster results
+#     analyze_cluster_results(csv_path)
 
 
-@cluster.command(name="split", context_settings={"show_default": True})
-@click.option(
-    "--pairs-file",
-    default="./data/pairs-all.parquet",
-    show_default=True,
-    help="Path to the pairs file (CSV or Parquet)",
-)
-@click.option(
-    "--cluster-file",
-    default="./data/cluster_results.csv",
-    show_default=True,
-    help="Path to the cluster results CSV file",
-)
-@click.option(
-    "--output-dir",
-    default="./data/cluster_splits",
-    show_default=True,
-    help="Directory to save split files",
-)
-@click.option(
-    "--intra-threshold",
-    default=0.2,
-    type=float,
-    help="Intra-cluster distance threshold for tight clusters",
-)
-@click.option(
-    "--min-size",
-    default=5,
-    type=int,
-    help="Minimum cluster size for tight clusters",
-)
-@click.option(
-    "--train-ratio",
-    default=0.7,
-    type=float,
-    help="Training set ratio",
-)
-@click.option(
-    "--test-ratio",
-    default=0.2,
-    type=float,
-    help="Test set ratio",
-)
-@click.option(
-    "--eval-ratio",
-    default=0.1,
-    type=float,
-    help="Evaluation set ratio",
-)
-@click.option(
-    "--random-state",
-    default=42,
-    type=int,
-    help="Random seed for reproducibility",
-)
-def cluster_split(
-    pairs_file: str,
-    cluster_file: str,
-    output_dir: str,
-    intra_threshold: float,
-    min_size: int,
-    train_ratio: float,
-    test_ratio: float,
-    eval_ratio: float,
-    random_state: int,
-) -> None:
-    """Create cluster-aware train/test/eval splits to prevent overfitting.
+# @cluster.command(name="quality", context_settings={"show_default": True})
+# @click.option(
+#     "--csv-path",
+#     default="./data/cluster_results.csv",
+#     type=click.Path(exists=True, dir_okay=False, readable=True),
+#     help="Path to the cluster results CSV file from compute command",
+# )
+# def cluster_quality(csv_path: str) -> None:
+#     """Analyze cluster quality using distance metrics."""
+#     # Load the cluster results and analyze quality
+#     df = pd.read_csv(csv_path)
+#     analyze_cluster_quality(df)
 
-    This command ensures that tight clusters (groups of very similar names) are
-    placed entirely in one partition (train, test, or eval) rather than being
-    split across multiple partitions. This prevents overfitting by ensuring
-    the model cannot memorize cluster patterns during training.
 
-    Example: eridu cluster split --pairs-file data/pairs-all.parquet
-    """
-    from eridu.etl.cluster_split import create_cluster_aware_splits
+# @cluster.command(name="split", context_settings={"show_default": True})
+# @click.option(
+#     "--pairs-file",
+#     default="./data/pairs-all.parquet",
+#     show_default=True,
+#     help="Path to the pairs file (CSV or Parquet)",
+# )
+# @click.option(
+#     "--cluster-file",
+#     default="./data/cluster_results.csv",
+#     show_default=True,
+#     help="Path to the cluster results CSV file",
+# )
+# @click.option(
+#     "--output-dir",
+#     default="./data/cluster_splits",
+#     show_default=True,
+#     help="Directory to save split files",
+# )
+# @click.option(
+#     "--intra-threshold",
+#     default=0.2,
+#     type=float,
+#     help="Intra-cluster distance threshold for tight clusters",
+# )
+# @click.option(
+#     "--min-size",
+#     default=5,
+#     type=int,
+#     help="Minimum cluster size for tight clusters",
+# )
+# @click.option(
+#     "--train-ratio",
+#     default=0.7,
+#     type=float,
+#     help="Training set ratio",
+# )
+# @click.option(
+#     "--test-ratio",
+#     default=0.2,
+#     type=float,
+#     help="Test set ratio",
+# )
+# @click.option(
+#     "--eval-ratio",
+#     default=0.1,
+#     type=float,
+#     help="Evaluation set ratio",
+# )
+# @click.option(
+#     "--random-state",
+#     default=42,
+#     type=int,
+#     help="Random seed for reproducibility",
+# )
+# def cluster_split(
+#     pairs_file: str,
+#     cluster_file: str,
+#     output_dir: str,
+#     intra_threshold: float,
+#     min_size: int,
+#     train_ratio: float,
+#     test_ratio: float,
+#     eval_ratio: float,
+#     random_state: int,
+# ) -> None:
+#     """Create cluster-aware train/test/eval splits to prevent overfitting.
 
-    create_cluster_aware_splits(
-        pairs_file=pairs_file,
-        cluster_file=cluster_file,
-        output_dir=output_dir,
-        intra_distance_threshold=intra_threshold,
-        min_cluster_size=min_size,
-        train_ratio=train_ratio,
-        test_ratio=test_ratio,
-        eval_ratio=eval_ratio,
-        random_state=random_state,
-    )
+#     This command ensures that tight clusters (groups of very similar names) are
+#     placed entirely in one partition (train, test, or eval) rather than being
+#     split across multiple partitions. This prevents overfitting by ensuring
+#     the model cannot memorize cluster patterns during training.
+
+#     Example: eridu cluster split --pairs-file data/pairs-all.parquet
+#     """
+#     from eridu.etl.cluster_split import create_cluster_aware_splits
+
+#     create_cluster_aware_splits(
+#         pairs_file=pairs_file,
+#         cluster_file=cluster_file,
+#         output_dir=output_dir,
+#         intra_distance_threshold=intra_threshold,
+#         min_cluster_size=min_size,
+#         train_ratio=train_ratio,
+#         test_ratio=test_ratio,
+#         eval_ratio=eval_ratio,
+#         random_state=random_state,
+#     )
 
 
 @cli.command(name="train", context_settings={"show_default": True})
