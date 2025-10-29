@@ -27,7 +27,7 @@ from sklearn.metrics import (  # type: ignore
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import GroupKFold  # type: ignore
+from sklearn.model_selection import train_test_split  # type: ignore
 from transformers import EarlyStoppingCallback, TrainerCallback
 
 import wandb
@@ -162,13 +162,18 @@ USE_GPU: bool = os.environ.get("USE_GPU", "True").lower() == "true"
 device: torch.device | str
 if USE_GPU:
     if torch.backends.mps.is_available():
+        # Enable CPU fallback for unsupported MPS operations
+        os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
         device = torch.device("mps")
-        logger.debug("Using Apple GPU acceleration")
+        print("Using Apple MPS GPU acceleration")
+        logger.debug("Using Apple GPU acceleration with MPS")
     elif torch.cuda.is_available():
         device = torch.device("cuda")
+        print("Using NVIDIA CUDA GPU acceleration")
         logger.debug("Using NVIDIA CUDA GPU acceleration")
     else:
         device = "cpu"
+        print("No GPU available, using CPU")
         logger.debug("No GPU available, falling back to CPU")
 else:
     device = "cpu"
@@ -186,34 +191,19 @@ dataset: pd.DataFrame = pd.read_parquet(INPUT_PATH)
 print("\nRaw training data sample:\n")
 print(dataset.sample(n=20).head())
 
-# Split the dataset into training, evaluation, and test sets using GroupKFold
+
+# Split the dataset into training, evaluation, and test sets
 # This ensures all records from the same source stay in the same split
 train_df: pd.DataFrame
+tmp_df: pd.DataFrame
 eval_df: pd.DataFrame
 test_df: pd.DataFrame
 
+train_df, tmp_df = train_test_split(dataset, test_size=0.2, random_state=RANDOM_SEED, shuffle=True)
+eval_df, test_df = train_test_split(tmp_df, test_size=0.5, random_state=RANDOM_SEED, shuffle=True)
+
 # Define groups based on the 'source' column
 groups = dataset["source"].values
-
-# First split: separate test set (0.1) from train+eval (0.9)
-# Using n_splits=10 means each fold is approximately 0.1 of the data
-gkf_test = GroupKFold(n_splits=10)
-splits = list(gkf_test.split(dataset, y=None, groups=groups))
-train_eval_idx, test_idx = splits[0]  # Use first split
-
-# Create train+eval and test dataframes
-train_eval_df = dataset.iloc[train_eval_idx].reset_index(drop=True)
-test_df = dataset.iloc[test_idx].reset_index(drop=True)
-
-# Second split: separate train (0.8 overall) from eval (0.1 overall)
-# We need to split train_eval (0.9) into train (8/9 of it) and eval (1/9 of it)
-train_eval_groups = train_eval_df["source"].values
-gkf_eval = GroupKFold(n_splits=9)
-splits_eval = list(gkf_eval.split(train_eval_df, y=None, groups=train_eval_groups))
-train_idx, eval_idx = splits_eval[0]  # Use first split
-
-train_df = train_eval_df.iloc[train_idx].reset_index(drop=True)
-eval_df = train_eval_df.iloc[eval_idx].reset_index(drop=True)
 
 print(f"\nTraining data (full):   {len(train_df):,}")
 print(f"Evaluation data:        {len(eval_df):,}")
@@ -283,9 +273,13 @@ sbert_model: SentenceTransformer = SentenceTransformer(
         model_name=f"{SBERT_MODEL}-name-matcher-{VARIANT}",
     ),
 )
-if USE_GRADIENT_CHECKPOINTING:
+# Disable gradient checkpointing on MPS due to known bugs
+if USE_GRADIENT_CHECKPOINTING and device != torch.device("mps"):
     sbert_model.gradient_checkpointing_enable()
     logger.debug("Gradient checkpointing enabled to save memory")
+elif USE_GRADIENT_CHECKPOINTING and device == torch.device("mps"):
+    print("WARNING: Gradient checkpointing disabled for MPS device due to known bugs")
+    logger.debug("Gradient checkpointing disabled for MPS")
 
 # Put network in training mode
 sbert_model.train()
@@ -466,6 +460,9 @@ loss: ContextAdaptiveContrastiveLoss = ContextAdaptiveContrastiveLoss(
 )
 
 # Set lots of options to reduce memory usage and improve training speed
+# Disable gradient checkpointing for MPS due to known bugs
+use_gradient_checkpointing = USE_GRADIENT_CHECKPOINTING and device != torch.device("mps")
+
 sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingArguments(
     output_dir=SBERT_OUTPUT_FOLDER,
     num_train_epochs=EPOCHS,
@@ -487,7 +484,7 @@ sbert_args: SentenceTransformerTrainingArguments = SentenceTransformerTrainingAr
     logging_dir="./logs",
     weight_decay=WEIGHT_DECAY,
     gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
-    gradient_checkpointing=USE_GRADIENT_CHECKPOINTING,
+    gradient_checkpointing=use_gradient_checkpointing,
     max_grad_norm=MAX_GRAD_NORM,
     optim=OPTIMIZER,
 )
@@ -626,6 +623,17 @@ except Exception as e:
     print(f"Warning: Could not log PR curve to W&B: {e}")
     # Log individual metrics instead
     wandb.log({"final/y_true": y_true, "final/y_scores": y_scores.tolist()})
+
+# Use an evaluator to get trustworthy metrics for the match classification
+binary_acc_evaluator: BinaryClassificationEvaluator = BinaryClassificationEvaluator(
+    sentences1=sample_dataset["sentence1"],
+    sentences2=sample_dataset["sentence2"],
+    labels=sample_dataset["label"],  # Already converted to float above
+    name=evaluation_name,
+)
+binary_acc_results = binary_acc_evaluator(sbert_model)
+binary_acc_df: pd.DataFrame = pd.DataFrame([binary_acc_results])
+print(str(binary_acc_df) + "\n")
 
 # Now it's safe to finish wandb
 wandb.finish()
