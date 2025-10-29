@@ -8,7 +8,7 @@
 export LAMBDA_IP="<YOUR_LAMBDA_IP_ADDRESS>"
 
 # Which region FS are we using?
-export LAMBDA_REGION_FS="default-us-east-1"
+export LAMBDA_REGION_FS="default-us-south-2"
 
 # Lambda Labs SSH key
 export LAMBDA_LABS_KEY="lambda-labs-ssh-key.pem"
@@ -48,14 +48,18 @@ export PATH="${MINICONDA_HOME}/bin:${PATH}"
 conda init bash
 source ~/.bashrc
 
+# Accept Anaconda TOS
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
 # Create the project's _environment_
 conda create -n eridu python=3.12 -y
 conda activate eridu
 
 # Install poetry and disable virtualenvs - we have conda
-pipx install poetry
+sudo apt install pipx -y
+pipx install --force poetry
 poetry config virtualenvs.create false
-
 
 #
 # Github SSH authentication and code checkout
@@ -73,3 +77,6 @@ cd ${HOME}/${LAMBDA_REGION_FS}
 git clone git@github.com:Graphlet-AI/eridu.git
 cd eridu
 poetry install
+
+echo 'export PATH=/home/ubuntu/.local/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
