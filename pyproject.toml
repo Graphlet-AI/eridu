@@ -85,7 +85,7 @@ numba = "^0.60.0"
 llvmlite = "^0.43.0"
 cudf-cu12 = { version = "^25.6.0", source = "rapids", markers = "sys_platform == 'linux'" }
 cuml-cu12 = { version = "^25.6.0", source = "rapids", markers = "sys_platform == 'linux'" }
-torch = "2.9.0"
+torch = ">=2.9.0"
 cleanco = "^2.3"
 stop-words = "^2018.7.23"
 langdetect = "^1.0.9"
