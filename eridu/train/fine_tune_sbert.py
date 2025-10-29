@@ -27,6 +27,7 @@ from sklearn.metrics import (  # type: ignore
     recall_score,
     roc_auc_score,
 )
+from sklearn.model_selection import GroupKFold  # type: ignore
 from sklearn.model_selection import train_test_split  # type: ignore
 from transformers import EarlyStoppingCallback, TrainerCallback
 
@@ -186,13 +187,34 @@ dataset: pd.DataFrame = pd.read_parquet(INPUT_PATH)
 print("\nRaw training data sample:\n")
 print(dataset.sample(n=20).head())
 
-# Split the dataset into training, evaluation, and test sets
+# Split the dataset into training, evaluation, and test sets using GroupKFold
+# This ensures all records from the same source stay in the same split
 train_df: pd.DataFrame
-tmp_df: pd.DataFrame
 eval_df: pd.DataFrame
 test_df: pd.DataFrame
-train_df, tmp_df = train_test_split(dataset, test_size=0.2, random_state=RANDOM_SEED, shuffle=True)
-eval_df, test_df = train_test_split(tmp_df, test_size=0.5, random_state=RANDOM_SEED, shuffle=True)
+
+# Define groups based on the 'source' column
+groups = dataset["source"].values
+
+# First split: separate test set (0.1) from train+eval (0.9)
+# Using n_splits=10 means each fold is approximately 0.1 of the data
+gkf_test = GroupKFold(n_splits=10)
+splits = list(gkf_test.split(dataset, y=None, groups=groups))
+train_eval_idx, test_idx = splits[0]  # Use first split
+
+# Create train+eval and test dataframes
+train_eval_df = dataset.iloc[train_eval_idx].reset_index(drop=True)
+test_df = dataset.iloc[test_idx].reset_index(drop=True)
+
+# Second split: separate train (0.8 overall) from eval (0.1 overall)
+# We need to split train_eval (0.9) into train (8/9 of it) and eval (1/9 of it)
+train_eval_groups = train_eval_df["source"].values
+gkf_eval = GroupKFold(n_splits=9)
+splits_eval = list(gkf_eval.split(train_eval_df, y=None, groups=train_eval_groups))
+train_idx, eval_idx = splits_eval[0]  # Use first split
+
+train_df = train_eval_df.iloc[train_idx].reset_index(drop=True)
+eval_df = train_eval_df.iloc[eval_idx].reset_index(drop=True)
 
 print(f"\nTraining data (full):   {len(train_df):,}")
 print(f"Evaluation data:        {len(eval_df):,}")
