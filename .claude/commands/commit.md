@@ -1,1 +1,6 @@
-Clean up any pre-commit issues without my intervention and then commit the outstanding changes. DO NOT mention yourself, Claude in the commit message. Keep the commit message straightforward and to the point - do not put extraneous details, simply summarize the work performed. Do not put anything in commit messages other than a description of the code changes.
+---
+allowed-tools: Bash(git add:*), Bash(git checkout --branch:*), Bash(git status:*), Bash(git commit:*), Bash(gh pr create:*), Bash(pre-commit), Edit, Read, Write
+description: Prepare and commit the code already added to git
+---
+
+Clean up any pre-commit issues without my intervention and then commit the outstanding changes
