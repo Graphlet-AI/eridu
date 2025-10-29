@@ -14,7 +14,6 @@ from tqdm import tqdm
 
 # from eridu.cluster import cluster_names, cluster_names_bert
 from eridu.etl import evaluate as evaluate_module
-from eridu.etl.analyze import analyze_cluster_quality, analyze_cluster_results
 from eridu.etl.filter import filter_pairs, filter_statements_to_addresses
 from eridu.utils import get_model_path_for_entity_type
 

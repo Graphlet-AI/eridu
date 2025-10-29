@@ -287,7 +287,7 @@ nohup eridu train \
     --model "intfloat/multilingual-e5-base" \
     --use-gpu \
     --batch-size 16 \
-    --epochs 1 \
+    --epochs 3 \
     --patience 1 \
     --weight-decay 0.01 \
     --margin 0.5 \
