@@ -43,7 +43,8 @@ def get_model_path_for_entity_type(entity_type: str) -> str:
     if not entity_type:
         raise ValueError("entity_type must be provided")
 
-    base_model = "data/fine-tuned-sbert-sentence-transformers-paraphrase-multilingual-MiniLM-L12-v2-original-adafactor"
+    # base_model = "data/fine-tuned-sbert-sentence-transformers-paraphrase-multilingual-MiniLM-L12-v2-original-adafactor"
+    base_model = "data/fine-tuned-sbert-intfloat-multilingual-e5-base-original-adafactor-companies"
     entity_model_path = f"{base_model}-{entity_type}"
 
     # Check if the model exists
