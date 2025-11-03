@@ -296,7 +296,7 @@ nohup eridu train \
     --learning-rate 1e-5 \
     --save-strategy epoch \
     --eval-strategy epoch \
-    --sample-fraction 0.01 \
+    --sample-fraction 0.1 \
     --post-sample-pct 0.01 \
     --output data/output/companies \
     --data-type companies &
