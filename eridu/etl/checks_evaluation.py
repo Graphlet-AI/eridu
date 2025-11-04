@@ -423,14 +423,6 @@ def generate_checks_report(  # noqa: C901
         print(f"{'=' * 80}")
         save_results_to_csv(results_list, output_dir)
 
-        # Also run enhanced analysis
-        from eridu.etl.enhanced_evaluation_report import analyze_errors_detailed
-
-        true_positives, false_positives, true_negatives, false_negatives = _categorize_results(
-            results_list
-        )
-        analyze_errors_detailed(false_positives, false_negatives, output_dir)
-
     print(f"\n{'=' * 80}")
     print("EVALUATION SUMMARY")
     print(f"{'=' * 80}")
