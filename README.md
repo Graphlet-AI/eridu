@@ -286,7 +286,7 @@ wandb login
 nohup eridu train \
     --model "intfloat/multilingual-e5-base" \
     --use-gpu \
-    --batch-size 16 \
+    --batch-size 128 \
     --epochs 5 \
     --patience 1 \
     --weight-decay 0.01 \
@@ -296,12 +296,10 @@ nohup eridu train \
     --learning-rate 1e-5 \
     --save-strategy epoch \
     --eval-strategy epoch \
-    --sample-fraction 0.1 \
+    --sample-fraction 1.0 \
     --post-sample-pct 0.01 \
     --output data/output/companies \
     --data-type companies &
-
-    # --fp16 \
 ```
 
 ## License
