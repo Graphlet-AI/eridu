@@ -8,7 +8,7 @@
 export LAMBDA_IP="<YOUR_LAMBDA_IP_ADDRESS>"
 
 # Which region FS are we using?
-export LAMBDA_REGION_FS="default-us-south-2"
+export LAMBDA_REGION_FS="default-us-west-2"
 
 # Lambda Labs SSH key
 export LAMBDA_LABS_KEY="lambda-labs-ssh-key.pem"
