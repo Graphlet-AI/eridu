@@ -189,21 +189,20 @@ print(f"Device for fine-tuning SBERT: {device}")
 dataset: pd.DataFrame = pd.read_parquet(INPUT_PATH)
 print(f"Loaded {len(dataset):,} records from {INPUT_PATH}")
 
-# Check if cleanco dataset exists and merge it
+# Load cleanco dataset separately to preserve it during sampling
 cleanco_path = "data/pairs-cleanco.parquet"
+cleanco_df: pd.DataFrame | None = None
 if os.path.exists(cleanco_path):
     cleanco_df = pd.read_parquet(cleanco_path)
-    print(f"Loaded {len(cleanco_df):,} records from {cleanco_path}")
-    dataset = pd.concat([dataset, cleanco_df], ignore_index=True)
-    print(f"Combined dataset: {len(dataset):,} total records")
+    print(f"Loaded {len(cleanco_df):,} records from {cleanco_path} (will use ALL cleanco data)")
 
 # Display the first few rows of the dataset
 print("\nRaw training data sample:\n")
 print(dataset.sample(n=20).head())
 
 
-# Split the dataset into training, evaluation, and test sets
-# This ensures all records from the same source stay in the same split
+# Split the main dataset into training, evaluation, and test sets
+# Note: cleanco data will be added to training set later (always in full)
 train_df: pd.DataFrame
 tmp_df: pd.DataFrame
 eval_df: pd.DataFrame
@@ -238,6 +237,32 @@ if USE_RESAMPLING and SAMPLE_FRACTION < 1.0:
     print(
         f"Initial training sample: {sample_size:,} examples ({SAMPLE_FRACTION:.1%} of full training data)"
     )
+
+    # Add ALL cleanco data to the resampled training data
+    if cleanco_df is not None:
+        # Convert current dataset back to DataFrame to merge
+        current_df = pd.DataFrame(
+            {
+                "left_name": train_dataset["sentence1"],
+                "right_name": train_dataset["sentence2"],
+                "match": train_dataset["label"],
+            }
+        )
+        # Add cleanco data
+        combined_df = pd.concat(
+            [current_df, cleanco_df[["left_name", "right_name", "match"]]], ignore_index=True
+        )
+        # Convert back to Dataset
+        train_dataset = Dataset.from_dict(
+            {
+                "sentence1": combined_df["left_name"].tolist(),
+                "sentence2": combined_df["right_name"].tolist(),
+                "label": combined_df["match"].astype(float).tolist(),
+            }
+        )
+        print(
+            f"Added {len(cleanco_df):,} cleanco records to training data (final: {len(train_dataset):,})"
+        )
 else:
     # Without resampling, just sample once if sample_fraction < 1.0
     if SAMPLE_FRACTION < 1.0:
@@ -246,6 +271,13 @@ else:
     else:
         sampled_train_df = train_df
         print("Using full training dataset (no sampling)")
+
+    # Add ALL cleanco data to the sampled training data
+    if cleanco_df is not None:
+        sampled_train_df = pd.concat([sampled_train_df, cleanco_df], ignore_index=True)
+        print(
+            f"Added {len(cleanco_df):,} cleanco records to training data (final: {len(sampled_train_df):,})"
+        )
 
     # Convert to HuggingFace Dataset
     train_dataset = Dataset.from_dict(
@@ -506,7 +538,9 @@ callbacks: list[TrainerCallback] = [
 
 # Add resampling callback if resampling is enabled
 if USE_RESAMPLING and SAMPLE_FRACTION < 1.0:
-    resampling_callback = ResamplingCallback(resampling_dataset, epochs=EPOCHS)
+    resampling_callback = ResamplingCallback(
+        resampling_dataset, epochs=EPOCHS, cleanco_df=cleanco_df
+    )
     callbacks.append(resampling_callback)
 
 trainer: SentenceTransformerTrainer = SentenceTransformerTrainer(
