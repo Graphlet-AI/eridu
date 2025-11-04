@@ -187,6 +187,15 @@ print(f"Device for fine-tuning SBERT: {device}")
 #
 
 dataset: pd.DataFrame = pd.read_parquet(INPUT_PATH)
+print(f"Loaded {len(dataset):,} records from {INPUT_PATH}")
+
+# Check if cleanco dataset exists and merge it
+cleanco_path = "data/pairs-cleanco.parquet"
+if os.path.exists(cleanco_path):
+    cleanco_df = pd.read_parquet(cleanco_path)
+    print(f"Loaded {len(cleanco_df):,} records from {cleanco_path}")
+    dataset = pd.concat([dataset, cleanco_df], ignore_index=True)
+    print(f"Combined dataset: {len(dataset):,} total records")
 
 # Display the first few rows of the dataset
 print("\nRaw training data sample:\n")
