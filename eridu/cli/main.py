@@ -181,12 +181,12 @@ def etl_report(parquet_path: str, truncate: int) -> None:
 
 
 @etl.group(cls=OrderedGroup, context_settings={"show_default": True})
-def filter() -> None:
-    """Filter commands for data processing."""
+def companies() -> None:
+    """Company data processing commands."""
     pass
 
 
-@filter.command(name="pairs", context_settings={"show_default": True})
+@companies.command(name="filter", context_settings={"show_default": True})
 @click.option(
     "--input",
     "--input-path",
@@ -203,10 +203,52 @@ def filter() -> None:
     show_default=True,
     help="Directory to save the filtered Parquet files",
 )
-def filter_pairs_cmd(input: str, output: str) -> None:
+def companies_filter_cmd(input: str, output: str) -> None:
     """Filter entity pairs data to exclude sources starting with 'Q'."""
 
     filter_pairs(input, output)
+
+
+@companies.command(name="cleanco", context_settings={"show_default": True})
+@click.option(
+    "--input",
+    "--input-path",
+    default="data/pairs-all.parquet",
+    type=click.Path(exists=True, readable=True),
+    show_default=True,
+    help="Path to input pairs parquet file",
+)
+@click.option(
+    "--output",
+    "--output-path",
+    default="data/pairs-cleanco.parquet",
+    type=click.Path(writable=True),
+    show_default=True,
+    help="Path to output parquet file",
+)
+@click.option(
+    "--num-examples",
+    default=10000,
+    show_default=True,
+    help="Number of example pairs to generate",
+)
+@click.option(
+    "--random-seed",
+    default=42,
+    type=int,
+    show_default=True,
+    help="Random seed for reproducibility",
+)
+def companies_cleanco_cmd(input: str, output: str, num_examples: int, random_seed: int) -> None:
+    """Generate training pairs using cleanco to create corporate ending variations."""
+    from eridu.etl.cleanco import generate_cleanco_training_pairs
+
+    generate_cleanco_training_pairs(
+        input_parquet=input,
+        output_parquet=output,
+        num_examples=num_examples,
+        random_seed=random_seed,
+    )
 
 
 @cli.command(name="train", context_settings={"show_default": True})
