@@ -17,6 +17,7 @@ from datasets import Dataset  # type: ignore
 from scipy.stats import iqr
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
 from sentence_transformers.evaluation import BinaryClassificationEvaluator
+from sentence_transformers.losses import ContrastiveLoss
 from sentence_transformers.model_card import SentenceTransformerModelCardData
 from sentence_transformers.training_args import SentenceTransformerTrainingArguments
 from sklearn.metrics import (  # type: ignore
@@ -34,9 +35,6 @@ import wandb
 from eridu.train.callbacks import ResamplingCallback
 from eridu.train.dataset import ResamplingDataset
 
-# from sentence_transformers.losses import ContrastiveLoss
-from eridu.train.loss import ContextAdaptiveContrastiveLoss
-
 # from eridu.train.loss import MetricsContextAdaptiveContrastiveLoss
 from eridu.train.utils import (
     compute_sbert_metrics,
@@ -44,6 +42,9 @@ from eridu.train.utils import (
     sbert_compare_multiple,
     sbert_compare_multiple_df,
 )
+
+# from eridu.train.loss import ContextAdaptiveContrastiveLoss
+
 
 #
 # Training run and pandas configuration, environment variables, and runtime parameters
@@ -444,7 +445,7 @@ wandb.log(
 #
 
 # # This will effectively train the embedding model. MultipleNegativesRankingLoss did not work.
-# loss: ContrastiveLoss = ContrastiveLoss(model=sbert_model, margin=MARGIN)
+loss: ContrastiveLoss = ContrastiveLoss(model=sbert_model, margin=MARGIN)
 
 # # Use MetricsOnlineContrastiveLoss for detailed loss tracking
 # loss: MetricsOnlineContrastiveLoss = MetricsOnlineContrastiveLoss(
@@ -454,10 +455,10 @@ wandb.log(
 #     gate_stats_steps=GATE_STATS_STEPS,
 # )
 
-loss: ContextAdaptiveContrastiveLoss = ContextAdaptiveContrastiveLoss(
-    model=sbert_model,
-    margin=MARGIN,  # Margin for contrastive loss
-)
+# loss: ContextAdaptiveContrastiveLoss = ContextAdaptiveContrastiveLoss(
+#     model=sbert_model,
+#     margin=MARGIN,  # Margin for contrastive loss
+# )
 
 # Set lots of options to reduce memory usage and improve training speed
 # Disable gradient checkpointing for MPS due to known bugs
