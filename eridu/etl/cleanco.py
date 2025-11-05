@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 import pandas as pd
 from cleanco import basename  # type: ignore
-from cleanco.termdata import terms_by_type  # type: ignore
+from cleanco.termdata import terms_by_country  # type: ignore
 
 
 def generate_cleanco_training_pairs(
@@ -44,11 +44,12 @@ def generate_cleanco_training_pairs(
 
     print(f"Found {len(all_company_names):,} unique company names")
 
-    # Get term types and their terms
-    type_names = list(terms_by_type.keys())
-    print(f"\nAvailable corporate types: {len(type_names)}")
-    for type_name in type_names:
-        print(f"  - {type_name}: {len(terms_by_type[type_name])} terms")
+    # Get countries and their corporate terms
+    country_names = list(terms_by_country.keys())
+    print(f"\nAvailable countries: {len(country_names)}")
+    for country_name in country_names[:10]:  # Show first 10 as sample
+        print(f"  - {country_name}: {len(terms_by_country[country_name])} terms")
+    print(f"  ... and {len(country_names) - 10} more countries")
 
     # Generate pairs
     pairs: list[dict[str, Any]] = []
@@ -92,46 +93,63 @@ def generate_cleanco_training_pairs(
         )
 
         if create_match:
-            # Create matching pair: same type, different endings
-            # Pick a random type
-            type_name = random.choice(type_names)
-            type_terms = terms_by_type[type_name]
+            # Create matching pair: same country, different endings
+            # This represents the same legal entity with different corporate form notation
+            # Pick a random country
+            country_name = random.choice(country_names)
+            country_terms = terms_by_country[country_name]
 
             # Need at least 2 terms to create a pair
-            if len(type_terms) < 2:
+            if len(country_terms) < 2:
                 continue
 
-            # Pick 2 different terms from same type
-            term1, term2 = random.sample(type_terms, 2)
+            # Pick 2 different terms from same country
+            term1, term2 = random.sample(country_terms, 2)
 
             # Create the pair
             left_name = f"{base_name} {term1}".strip()
             right_name = f"{base_name} {term2}".strip()
             match = True
-            score = 0.9  # High score for same company
+            score = 0.9  # High score for same company (same country, different form)
 
         else:
-            # Create non-matching pair: different types, different endings
-            # Pick 2 different types
-            if len(type_names) < 2:
-                continue
+            # Create non-matching pair: either same country OR different countries
+            # Both represent different legal entities
 
-            type1, type2 = random.sample(type_names, 2)
-            terms1 = terms_by_type[type1]
-            terms2 = terms_by_type[type2]
+            # 50% chance: same country, different endings (still different companies)
+            # 50% chance: different countries (definitely different companies)
+            if random.random() < 0.5:
+                # Same country, different endings
+                country_name = random.choice(country_names)
+                country_terms = terms_by_country[country_name]
 
-            if not terms1 or not terms2:
-                continue
+                # Need at least 2 terms to create a pair
+                if len(country_terms) < 2:
+                    continue
 
-            # Pick one term from each type
-            term1 = random.choice(terms1)
-            term2 = random.choice(terms2)
+                # Pick 2 different terms from same country
+                term1, term2 = random.sample(country_terms, 2)
+            else:
+                # Different countries
+                if len(country_names) < 2:
+                    continue
+
+                country1, country2 = random.sample(country_names, 2)
+                terms1 = terms_by_country[country1]
+                terms2 = terms_by_country[country2]
+
+                if not terms1 or not terms2:
+                    continue
+
+                # Pick one term from each country
+                term1 = random.choice(terms1)
+                term2 = random.choice(terms2)
 
             # Create the pair
             left_name = f"{base_name} {term1}".strip()
             right_name = f"{base_name} {term2}".strip()
             match = False
-            score = 0.3  # Lower score for different company types
+            score = 0.3  # Lower score for different legal entities
 
         # Use the original record's norm and fp as template, but keep names as-is
         # We'll just copy the structure from a random existing record
@@ -180,14 +198,16 @@ def generate_cleanco_training_pairs(
     print(f"Output saved to: {output_parquet}")
 
     # Show samples
-    print("\n=== Sample MATCHING pairs (same base company, same type) ===")
+    print("\n=== Sample MATCHING pairs (same country, different endings) ===")
     print(
         pairs_df[pairs_df["match"]][["left_name", "right_name", "match", "score"]]
         .head(5)
         .to_string(index=False)
     )
 
-    print("\n=== Sample NON-MATCHING pairs (same base company, different types) ===")
+    print(
+        "\n=== Sample NON-MATCHING pairs (same country OR different countries, different entities) ==="
+    )
     print(
         pairs_df[~pairs_df["match"]][["left_name", "right_name", "match", "score"]]
         .head(5)
