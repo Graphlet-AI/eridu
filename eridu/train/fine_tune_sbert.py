@@ -28,7 +28,7 @@ from sklearn.metrics import (  # type: ignore
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import train_test_split  # type: ignore
+from sklearn.model_selection import GroupShuffleSplit  # type: ignore
 from transformers import EarlyStoppingCallback, TrainerCallback
 
 import wandb
@@ -189,34 +189,68 @@ print(f"Device for fine-tuning SBERT: {device}")
 dataset: pd.DataFrame = pd.read_parquet(INPUT_PATH)
 print(f"Loaded {len(dataset):,} records from {INPUT_PATH}")
 
-# Load cleanco dataset separately to preserve it during sampling
-cleanco_path = "data/pairs-cleanco.parquet"
-cleanco_df: pd.DataFrame | None = None
-if os.path.exists(cleanco_path):
-    cleanco_df = pd.read_parquet(cleanco_path)
-    print(f"Loaded {len(cleanco_df):,} records from {cleanco_path} (will use ALL cleanco data)")
+# Load disco dataset and merge with main dataset BEFORE GroupShuffleSplit
+# This ensures disco records are distributed across train/eval/test splits
+# while respecting source groups (each base company name is a separate group)
+disco_path = "data/pairs-disco.parquet"
+if os.path.exists(disco_path):
+    disco_df = pd.read_parquet(disco_path)
+    print(f"Loaded {len(disco_df):,} records from {disco_path}")
+    print("Merging disco data with main dataset before split...")
+    dataset = pd.concat([dataset, disco_df], ignore_index=True)
+    print(f"Combined dataset size: {len(dataset):,} records")
 
 # Display the first few rows of the dataset
 print("\nRaw training data sample:\n")
 print(dataset.sample(n=20).head())
 
 
-# Split the main dataset into training, evaluation, and test sets
-# Note: cleanco data will be added to training set later (always in full)
+# Split the combined dataset (main + disco) into training, evaluation, and test sets
+# using GroupShuffleSplit. This ensures that sources (groups) don't leak between splits.
 train_df: pd.DataFrame
 tmp_df: pd.DataFrame
 eval_df: pd.DataFrame
 test_df: pd.DataFrame
 
-train_df, tmp_df = train_test_split(dataset, test_size=0.2, random_state=RANDOM_SEED, shuffle=True)
-eval_df, test_df = train_test_split(tmp_df, test_size=0.5, random_state=RANDOM_SEED, shuffle=True)
+# First split: 80% train, 20% temp (for eval+test)
+# GroupShuffleSplit ensures no source appears in both train and temp
+splitter1 = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=RANDOM_SEED)
+train_idx, temp_idx = next(splitter1.split(dataset, groups=dataset["source"]))
+train_df = dataset.iloc[train_idx]
+temp_df = dataset.iloc[temp_idx]
 
-# Define groups based on the 'source' column
-groups = dataset["source"].values
+# Second split: 50% eval, 50% test (from the 20% temp)
+# This gives us 10% eval and 10% test of the original dataset
+splitter2 = GroupShuffleSplit(n_splits=1, test_size=0.5, random_state=RANDOM_SEED)
+eval_idx, test_idx = next(splitter2.split(temp_df, groups=temp_df["source"]))
+eval_df = temp_df.iloc[eval_idx]
+test_df = temp_df.iloc[test_idx]
 
 print(f"\nTraining data (full):   {len(train_df):,}")
 print(f"Evaluation data:        {len(eval_df):,}")
 print(f"Test data:              {len(test_df):,}\n")
+
+# Verify that sources don't leak between train/eval/test splits
+train_sources = set(train_df["source"].unique())
+eval_sources = set(eval_df["source"].unique())
+test_sources = set(test_df["source"].unique())
+
+train_eval_overlap = train_sources & eval_sources
+train_test_overlap = train_sources & test_sources
+eval_test_overlap = eval_sources & test_sources
+
+print(f"Unique sources in training:   {len(train_sources):,}")
+print(f"Unique sources in evaluation: {len(eval_sources):,}")
+print(f"Unique sources in test:       {len(test_sources):,}")
+print("\nSource overlap verification:")
+print(f"  Train-Eval overlap:  {len(train_eval_overlap):,} sources (should be 0)")
+print(f"  Train-Test overlap:  {len(train_test_overlap):,} sources (should be 0)")
+print(f"  Eval-Test overlap:   {len(eval_test_overlap):,} sources (should be 0)")
+
+if train_eval_overlap or train_test_overlap or eval_test_overlap:
+    print("WARNING: Source leakage detected between splits!")
+else:
+    print("✓ No source leakage detected - splits are properly separated\n")
 
 # Save the full test split for later evaluation
 os.makedirs(SBERT_OUTPUT_FOLDER, exist_ok=True)
@@ -237,32 +271,6 @@ if USE_RESAMPLING and SAMPLE_FRACTION < 1.0:
     print(
         f"Initial training sample: {sample_size:,} examples ({SAMPLE_FRACTION:.1%} of full training data)"
     )
-
-    # Add ALL cleanco data to the resampled training data
-    if cleanco_df is not None:
-        # Convert current dataset back to DataFrame to merge
-        current_df = pd.DataFrame(
-            {
-                "left_name": train_dataset["sentence1"],
-                "right_name": train_dataset["sentence2"],
-                "match": train_dataset["label"],
-            }
-        )
-        # Add cleanco data
-        combined_df = pd.concat(
-            [current_df, cleanco_df[["left_name", "right_name", "match"]]], ignore_index=True
-        )
-        # Convert back to Dataset
-        train_dataset = Dataset.from_dict(
-            {
-                "sentence1": combined_df["left_name"].tolist(),
-                "sentence2": combined_df["right_name"].tolist(),
-                "label": combined_df["match"].astype(float).tolist(),
-            }
-        )
-        print(
-            f"Added {len(cleanco_df):,} cleanco records to training data (final: {len(train_dataset):,})"
-        )
 else:
     # Without resampling, just sample once if sample_fraction < 1.0
     if SAMPLE_FRACTION < 1.0:
@@ -271,13 +279,6 @@ else:
     else:
         sampled_train_df = train_df
         print("Using full training dataset (no sampling)")
-
-    # Add ALL cleanco data to the sampled training data
-    if cleanco_df is not None:
-        sampled_train_df = pd.concat([sampled_train_df, cleanco_df], ignore_index=True)
-        print(
-            f"Added {len(cleanco_df):,} cleanco records to training data (final: {len(sampled_train_df):,})"
-        )
 
     # Convert to HuggingFace Dataset
     train_dataset = Dataset.from_dict(
@@ -418,8 +419,8 @@ print(f"Running initial evaluation on {device} for {len(sample_df):,} sample rec
 result_df: pd.DataFrame = sbert_compare_multiple_df(
     sbert_model, sample_df["left_name"], sample_df["right_name"], sample_df["match"], use_gpu=True
 )
-error_s: pd.Series = np.abs(result_df.match.astype(float) - result_df.similarity)
-score_diff_s: pd.Series = np.abs(error_s - sample_df.score)
+error_s: pd.Series = pd.Series(np.abs(result_df.match.astype(float) - result_df.similarity))
+score_diff_s: pd.Series = pd.Series(np.abs(error_s - sample_df.score))
 
 # Compute the mean, standard deviation, and interquartile range of the error
 stats_df: pd.DataFrame = pd.DataFrame(  # retain and append fine-tuned SBERT stats for comparison
@@ -538,9 +539,7 @@ callbacks: list[TrainerCallback] = [
 
 # Add resampling callback if resampling is enabled
 if USE_RESAMPLING and SAMPLE_FRACTION < 1.0:
-    resampling_callback = ResamplingCallback(
-        resampling_dataset, epochs=EPOCHS, cleanco_df=cleanco_df
-    )
+    resampling_callback = ResamplingCallback(resampling_dataset, epochs=EPOCHS)
     callbacks.append(resampling_callback)
 
 trainer: SentenceTransformerTrainer = SentenceTransformerTrainer(
@@ -668,16 +667,16 @@ except Exception as e:
     # Log individual metrics instead
     wandb.log({"final/y_true": y_true, "final/y_scores": y_scores.tolist()})
 
-# Use an evaluator to get trustworthy metrics for the match classification
-binary_acc_evaluator: BinaryClassificationEvaluator = BinaryClassificationEvaluator(
+# Use an evaluator to get trustworthy metrics for the match classification (final evaluation)
+final_binary_acc_evaluator: BinaryClassificationEvaluator = BinaryClassificationEvaluator(
     sentences1=sample_dataset["sentence1"],
     sentences2=sample_dataset["sentence2"],
     labels=sample_dataset["label"],  # Already converted to float above
     name=evaluation_name,
 )
-binary_acc_results = binary_acc_evaluator(sbert_model)
-binary_acc_df: pd.DataFrame = pd.DataFrame([binary_acc_results])
-print(str(binary_acc_df) + "\n")
+final_binary_acc_results = final_binary_acc_evaluator(sbert_model)
+final_binary_acc_df: pd.DataFrame = pd.DataFrame([final_binary_acc_results])
+print(str(final_binary_acc_df) + "\n")
 
 # Now it's safe to finish wandb
 wandb.finish()

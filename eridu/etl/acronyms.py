@@ -1,4 +1,4 @@
-import cleanco  # type: ignore
+import disco  # type: ignore
 import pandas as pd
 from stop_words import AVAILABLE_LANGUAGES, get_stop_words  # type: ignore
 
@@ -18,7 +18,7 @@ def get_corporate_ending(company_name):
     if not company_name:
         return ""
 
-    cleaned = cleanco.basename(company_name)
+    cleaned = disco.basename(company_name)
 
     # If nothing was removed, there's no ending
     if cleaned == company_name:
@@ -38,8 +38,8 @@ def process_single_name(name: str) -> list[dict[str, str]]:
 
     pairs: list[dict[str, str]] = []
 
-    # Clean the company name using cleanco
-    cleaned_name = cleanco.basename(name)
+    # Clean the company name using disco
+    cleaned_name = disco.basename(name)
     ending = get_corporate_ending(name)
 
     # Skip if cleaning didn't change anything meaningful

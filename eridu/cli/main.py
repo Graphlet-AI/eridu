@@ -209,7 +209,7 @@ def companies_filter_cmd(input: str, output: str) -> None:
     filter_pairs(input, output)
 
 
-@companies.command(name="cleanco", context_settings={"show_default": True})
+@companies.command(name="disco", context_settings={"show_default": True})
 @click.option(
     "--input",
     "--input-path",
@@ -221,7 +221,7 @@ def companies_filter_cmd(input: str, output: str) -> None:
 @click.option(
     "--output",
     "--output-path",
-    default="data/pairs-cleanco.parquet",
+    default="data/pairs-disco.parquet",
     type=click.Path(writable=True),
     show_default=True,
     help="Path to output parquet file",
@@ -239,11 +239,11 @@ def companies_filter_cmd(input: str, output: str) -> None:
     show_default=True,
     help="Random seed for reproducibility",
 )
-def companies_cleanco_cmd(input: str, output: str, num_examples: int, random_seed: int) -> None:
-    """Generate training pairs using cleanco to create corporate ending variations."""
-    from eridu.etl.cleanco import generate_cleanco_training_pairs
+def companies_disco_cmd(input: str, output: str, num_examples: int, random_seed: int) -> None:
+    """Generate training pairs using disco to create corporate ending variations."""
+    from eridu.etl.disco import generate_disco_training_pairs
 
-    generate_cleanco_training_pairs(
+    generate_disco_training_pairs(
         input_parquet=input,
         output_parquet=output,
         num_examples=num_examples,

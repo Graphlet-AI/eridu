@@ -273,22 +273,15 @@ eridu etl report --parquet-path data/pairs-all.parquet
 # Login to your Weights and Biases account
 wandb login
 
-# I needed to increase the batch size to utilize A100 GPUs' 40GB GPU RAM
-# Using 2 epochs with all the company data
-# Using a weight decay of 0.05 for regularization
-# Using a margin of 0.95 for contrastive loss
-# Using a random seed of 31337 for reproducibility
-# Using warmup ratio of 0.1 for learning rate schedule
-# Using epoch-based save and evaluation strategy
-# Using learning rate of 1e-5 for optimization
-# Using FP16 mixed precision for faster training
-# Using a sample fraction of 0.5 to use half the dataset
+# H100 Training arguments (Lambda Labs H100 80GB):
+```bash
 nohup eridu train \
-    --model "intfloat/multilingual-e5-base" \
+    --model "intfloat/multilingual-e5-large" \
     --use-gpu \
-    --batch-size 128 \
+    --batch-size 200 \
     --epochs 5 \
     --patience 1 \
+    --fp16 \
     --weight-decay 0.01 \
     --margin 0.5 \
     --random-seed 31337 \
@@ -300,6 +293,28 @@ nohup eridu train \
     --post-sample-pct 0.01 \
     --output data/output/companies \
     --data-type companies &
+```
+
+MPS Training arguments (Apple Silicon):
+
+```bash
+eridu train \
+    --model "intfloat/multilingual-e5-large" \
+    --use-gpu \
+    --batch-size 16 \
+    --epochs 5 \
+    --patience 1 \
+    --weight-decay 0.01 \
+    --margin 0.5 \
+    --random-seed 31337 \
+    --warmup-ratio 0.1 \
+    --learning-rate 1e-5 \
+    --save-strategy epoch \
+    --eval-strategy epoch \
+    --sample-fraction 0.1 \
+    --post-sample-pct 0.01 \
+    --output data/output/companies \
+    --data-type companies
 ```
 
 ## License

@@ -71,7 +71,7 @@ sentence-transformers = { version = "^3.4.1", extras = ["torch"] }
 pandas = "^2.2.3"
 tqdm = "^4.67.1"
 pyarrow = "^19.0.1"
-wandb = "^0.19.10"
+wandb = "0.23.0"
 jupyter = "^1.1.1"
 notebook = "^7.3.3"
 seaborn = "^0.13.2"
@@ -87,9 +87,10 @@ cudf-cu12 = { version = "^25.6.0", source = "rapids", markers = "sys_platform ==
 cuml-cu12 = { version = "^25.6.0", source = "rapids", markers = "sys_platform == 'linux'" }
 torch = ">=2.9.0"
 torchvision = ">=0.24.0"
-cleanco = "^2.3"
 stop-words = "^2018.7.23"
 langdetect = "^1.0.9"
+cython = "^3.2.0"
+disco = {git = "ssh://git@github.com/rjurney/disco.git"}
 
 [tool.poetry.group.dev.dependencies]
 black = { version = "^25.1.0", extras = ["jupyter"] }

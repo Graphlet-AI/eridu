@@ -1,16 +1,16 @@
-"""Generate training pairs using cleanco to create corporate ending variations."""
+"""Generate training pairs using disco to create corporate ending variations."""
 
 import random
 from typing import Any, Optional
 
 import pandas as pd
-from cleanco import basename  # type: ignore
-from cleanco.termdata import terms_by_country  # type: ignore
+from disco.legaltype import basename  # type: ignore
+from disco.legaltype.termdata import terms_by_country  # type: ignore
 
 
-def generate_cleanco_training_pairs(
+def generate_disco_training_pairs(
     input_parquet: str = "data/pairs-all.parquet",
-    output_parquet: str = "data/pairs-cleanco.parquet",
+    output_parquet: str = "data/pairs-disco.parquet",
     num_examples: int = 10000,
     random_seed: Optional[int] = 42,
 ) -> None:
@@ -156,6 +156,8 @@ def generate_cleanco_training_pairs(
         template = company_df.sample(1).iloc[0]
 
         # Create pair record
+        # Use base_name as the source group to ensure all variations of the same company
+        # stay together during GroupShuffleSplit
         pair = {
             "left_name": left_name,
             "left_norm": template["left_norm"],  # Keep original format
@@ -171,7 +173,7 @@ def generate_cleanco_training_pairs(
             "dist_norm": template["dist_norm"],
             "dist_fp": template["dist_fp"],
             "score": score,
-            "source": "cleanco-generated",
+            "source": f"disco-{base_name}",
         }
 
         pairs.append(pair)
@@ -216,9 +218,9 @@ def generate_cleanco_training_pairs(
 
 
 if __name__ == "__main__":
-    generate_cleanco_training_pairs(
+    generate_disco_training_pairs(
         input_parquet="data/pairs-all.parquet",
-        output_parquet="data/pairs-cleanco.parquet",
+        output_parquet="data/pairs-disco.parquet",
         num_examples=10000,
         random_seed=42,
     )

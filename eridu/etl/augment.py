@@ -23,7 +23,7 @@ abbrev_output_schema = T.ArrayType(
 )
 def generate_company_abbreviations(names: "pd.Series[str]") -> pd.Series:
     """
-    Generate abbreviations for company names using cleanco to extract the basename, with and without periods.
+    Generate abbreviations for company names using disco to extract the basename, with and without periods.
     Returns an array of (original, abbreviation) pairs for each company.
     """
 
