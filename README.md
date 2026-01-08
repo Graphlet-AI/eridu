@@ -4,15 +4,15 @@ NOTE: this model is a work in progress. The open source version is not yet ready
 
 Deep fuzzy matching people and company names for multilingual entity resolution using representation learning... that incorporates a deep understanding of people and company names and works _much better_ than string distance methods.
 
-# Current Status and Plans
+## Current Status and Plans
 
 Two tasks remain to bring the model into a state of usefulness. PRs welcome, or I'll get to it :)
 
-## Corporate Endings: CorpWatch Subsidiaries
+### Corporate Endings: CorpWatch Subsidiaries
 
 I have fine-tuned the model using [intfloat/multilingual-e5-large](https://huggingface.co/intfloat/multilingual-e5-large) and it no longer character maps, it does fit with a good ROC curve. Despite this, the model doesn't seem to understand corporate endings. I plan to use the [Open Sanctions copy of the CorpWatch subsidiary dataset](https://www.opensanctions.org/datasets/us_corpwatch/) to train the embedding on corporate endings.
 
-## scikit-learn's `GroupKFold`
+### scikit-learn's `GroupKFold`
 
 The dataset is very clustered, so [sklearn.model_selection.GroupKFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GroupKFold.html) should address this deficiency.
 
